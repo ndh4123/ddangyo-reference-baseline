@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+.vite/
+coverage/
+.cache/
+.npm-cache/
+*.log
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
