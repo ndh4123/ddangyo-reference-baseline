@@ -1,50 +1,563 @@
-import { useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Header } from './components/Header';
-import { PhoneMock } from './components/PhoneMock';
 
-const sectionCount = 11;
+const sectionCount = 9;
+const mobileHeroQuery = '(max-width: 600px)';
+const mobileOwnerBenefitVideoSrc = '/videos/mobile-free-explosion-v7.mp4';
+const desktopOwnerBenefitVideoSrc = '/videos/pc-explosion-final.mp4';
 
-const benefits = [
-  ['고퀄리티 리뷰', 'review'],
-  ['개인 맞춤추천', 'phone'],
-  ['서울사랑상품권 할인', 'sale'],
-  ['착한수수료', 'coin'],
-  ['간편한 입점', 'store'],
-  ['편리한 정산', 'receipt'],
+const mobileOwnerBenefitSteps = Array.from(
+  { length: 8 },
+  (_, index) => `/images/free/steps/mobile/mobile-step${index}.png`,
+);
+const ownerBenefitStepImages = mobileOwnerBenefitSteps;
+const ownerBenefitStepAlts = [
+  '땡겨요 FREE 혜택 배경',
+  '땡겨요는',
+  '땡겨요는 주문수수료가',
+  '땡겨요는 주문수수료가 2%',
+  '땡겨요는 주문수수료가 2%, 캐릭터 등장',
+  '땡겨요는 주문수수료가 2%, 광고비 없음',
+  '땡겨요는 주문수수료가 2%, 광고비와 입점비 없음',
+  '땡겨요 주문수수료 2%, 광고비 없음, 입점비 없음, 월이용료 없음',
+] as const;
+const ownerBenefitFinalStep = mobileOwnerBenefitSteps.length - 1;
+const ownerBenefitAutoStepDuration = 650;
+const desktopOwnerBenefitArtwork = '/images/free/animation/free-final-transparent.png.png';
+const desktopOwnerBenefitAnimationDuration = 2600;
+const ownerBenefitBurstEase = {
+  swift: 'cubic-bezier(0.20, 0.90, 0.20, 1)',
+  settle: 'cubic-bezier(0.25, 1, 0.50, 1)',
+  up: 'cubic-bezier(0.20, 0.72, 0.36, 1)',
+  down: 'cubic-bezier(0.60, 0, 0.88, 0.42)',
+  expo: 'cubic-bezier(0.16, 1, 0.30, 1)',
+  out: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+  soft: 'cubic-bezier(0.33, 0, 0.20, 1)',
+} as const;
+const ownerBenefitBurstLand = [0.42, 0.60, 0.76, 0.89, 1] as const;
+const ownerBenefitBurstDotColors = [
+  '#e8410f', '#ffba08', '#7c3aed', '#e8410f', '#ffba08',
+  '#ff7a45', '#7c3aed', '#ffba08', '#e8410f', '#ff7a45',
+] as const;
+const ownerBenefitBurstDots = Array.from({ length: 10 }, (_, index) => ({
+  color: ownerBenefitBurstDotColors[index],
+  size: index % 3 === 0 ? 12 : 9,
+  borderRadius: index % 4 === 0 ? '3px' : '50%',
+}));
+
+const faqCategories = [
+  {
+    id: 'cost',
+    label: '입점·비용',
+    items: [
+      { id: 1, question: '땡겨요 입점 비용은 얼마인가요?', answer: '땡겨요는 입점비, 광고비, 월 이용료가 없습니다. 땡겨요의 주문중개수수료는 2%입니다.' },
+      { id: 26, question: '땡겨요 주문중개수수료 2% 외에 추가로 드는 비용이 있나요?', answer: '땡겨요는 입점비, 광고비, 월 이용료가 없으며 주문중개수수료는 2%입니다. 다만 고객의 결제수단에 따른 결제수수료와 매장의 배달 방식에 따른 배달비 등은 별도로 발생할 수 있습니다. 실제 적용되는 비용은 결제수단과 매장 운영 방식에 따라 달라질 수 있습니다.' },
+      { id: 2, question: '땡겨요는 광고비가 정말 없나요?', answer: '네. 땡겨요는 별도의 광고비 없이 이용할 수 있습니다. 광고비 부담 없이 매장을 운영할 수 있다는 점이 땡겨요의 장점 중 하나입니다.' },
+      { id: 3, question: '배달의민족·쿠팡이츠·요기요를 이용하고 있어도 땡겨요에 입점할 수 있나요?', answer: '네. 기존 배달앱을 이용하고 있어도 땡겨요에 추가로 입점할 수 있습니다. 여러 배달앱을 함께 운영하는 것도 가능합니다.' },
+      { id: 4, question: '땡겨요는 어떤 음식점이 입점할 수 있나요?', answer: '일반 음식점을 비롯해 배달·포장 서비스를 운영하는 다양한 매장이 입점 상담을 받을 수 있습니다. 구체적인 입점 가능 여부는 매장 정보를 확인한 후 안내해드립니다.' },
+      { id: 27, question: '땡겨요는 포장 주문만으로도 입점할 수 있나요?', answer: '네. 매장 운영 형태에 따라 배달뿐 아니라 포장 서비스를 선택해 입점할 수 있습니다. 매장 상황에 맞는 운영 방법은 상담 시 함께 안내해드립니다.' },
+      { id: 28, question: '배달대행업체를 이용하지 않아도 땡겨요에 입점할 수 있나요?', answer: '네. 배달대행업체를 이용하지 않는 매장도 입점 상담을 받을 수 있습니다. 포장 주문으로 운영할 수 있으며, 일부 지역에서는 땡겨요 자체배달 서비스 등을 이용할 수 있습니다. 이용 가능한 배달 방식은 지역과 매장 상황에 따라 다르므로 상담 시 확인해드립니다.' },
+      { id: 5, question: '땡겨요 입점 상담은 무료인가요?', answer: '네. 땡겨요 입점 상담은 무료입니다. 간단한 매장 정보만 남겨주시면 상담을 진행합니다.' },
+      { id: 6, question: '상담을 신청하면 반드시 땡겨요에 입점해야 하나요?', answer: '아니요. 상담을 받은 후 매장 상황과 입점 조건을 확인하고 입점 여부를 결정하시면 됩니다.' },
+    ],
+  },
+  {
+    id: 'process',
+    label: '입점 절차',
+    items: [
+      { id: 7, question: '땡겨요 입점 상담을 신청하면 어떻게 진행되나요?', answer: '상담 신청 후 전담 매니저 배치 → 입점 진행 → 주문접수 프로그램 설치 → 땡겨요 사용 방법 안내 및 컨설팅 순서로 진행됩니다.' },
+      { id: 8, question: '전담 매니저는 어떤 도움을 주나요?', answer: '전담 매니저가 입점에 필요한 절차를 안내하고 원활하게 입점이 진행될 수 있도록 도와드립니다. 입점 이후에는 매장 운영에 필요한 사항을 안내하고, 필요한 경우 매출 활성화에 도움이 될 수 있는 컨설팅도 제공합니다.' },
+      { id: 36, question: '전담 매니저가 입점을 도와주면 별도 비용을 내야 하나요?', answer: '아니요. 전담 매니저의 입점 상담과 입점 진행 지원에는 별도의 비용이 발생하지 않습니다. 사장님이 매니저에게 입점 대행비나 수수료를 따로 지급할 필요도 없습니다. 입점 절차와 필요한 사항을 안내받고 무료로 도움을 받을 수 있습니다.' },
+      { id: 9, question: '땡겨요 입점에 필요한 서류는 무엇인가요?', answer: '기본적으로 사업자등록증, 영업신고증, 통장사본 등이 필요합니다. 법인은 추가 서류가 필요하며, 그 외 메뉴와 배달에 관한 기본 정보도 필요합니다.' },
+      { id: 10, question: '땡겨요 입점까지 얼마나 걸리나요?', answer: '필요한 서류와 매장 정보를 전달한 후 입점 절차가 진행되며, 사장님의 전자계약서 서명 등의 과정이 필요합니다. 특별한 경우를 제외하면 대부분 1주일 이내에 입점이 완료됩니다.' },
+      { id: 11, question: '땡겨요 메뉴 등록은 어떻게 하나요?', answer: '메뉴 등록은 정해진 본사 절차에 따라 진행됩니다. 타 플랫폼과 동일한 메뉴 정보를 기준으로 등록할 수 있으며, 메뉴판 이미지를 전달해 등록하는 것도 가능합니다. 단, 메뉴 이미지는 타 플랫폼에서 사용 중인 이미지를 그대로 사용할 수 없습니다.' },
+      { id: 12, question: '전국 어디서나 땡겨요 입점 상담을 받을 수 있나요?', answer: '네. 전국 어디에서나 전담 매니저를 통해 땡겨요 입점 상담을 받을 수 있습니다.' },
+      { id: 13, question: '땡겨요 주문은 어떻게 접수하나요? 휴대폰에서도 가능한가요?', answer: '입점 진행 과정에서 땡겨요 주문을 확인하고 접수할 수 있도록 주문접수 프로그램을 설치해 드리고 있습니다. 땡겨요 주문은 포스 또는 PC에 주문접수 프로그램을 설치해 사용하는 것을 권장합니다. 다만 포스나 PC가 없는 경우에는 휴대폰의 땡겨요 주문접수 앱을 통해 주문을 받을 수 있습니다. 포스 또는 PC의 주문접수 프로그램과 스마트폰의 주문접수 앱을 동시에 사용할 수도 있습니다.' },
+      { id: 29, question: '기존에 이용 중인 배달대행업체나 POS를 그대로 사용할 수 있나요?', answer: '사용 중인 배달대행업체와 POS에 따라 연동할 수 있습니다. 입점 신청 시 현재 이용하고 있는 배달대행업체와 POS 정보를 확인하며, 연동 가능 여부와 필요한 설정 방법은 입점 과정에서 안내해드립니다.' },
+      { id: 14, question: '새로 오픈한 음식점도 땡겨요에 입점할 수 있나요?', answer: '네. 신규 오픈 매장도 필요한 입점 조건을 갖추고 있다면 땡겨요에 입점할 수 있습니다. 매장 상황을 확인한 후 필요한 서류와 입점 절차를 안내해드립니다.' },
+    ],
+  },
+  {
+    id: 'operation',
+    label: '운영',
+    items: [
+      { id: 15, question: '땡겨요 입점 후 매장 운영에 어려움이 생기면 어디에 문의하나요?', answer: '입점 이후에도 매장 운영 과정에서 궁금한 사항이나 도움이 필요한 경우 안내를 받을 수 있습니다. 필요한 경우 전담 매니저를 통해 운영 관련 안내를 받을 수 있습니다.' },
+      { id: 34, question: '땡겨요 입점 신청 후 메뉴를 수정하려면 어떻게 하나요?', answer: '입점 후 메뉴명, 가격, 옵션 등 메뉴 정보는 땡겨요 사장님라운지에서 사장님이 직접 수정할 수 있습니다. 사용 방법이 어렵거나 도움이 필요한 경우에는 담당 매니저를 통해 메뉴 수정 방법과 필요한 절차를 안내받을 수 있습니다.' },
+      { id: 37, question: '땡겨요는 샵인샵(가게 추가) 입점도 가능한가요?', answer: '네, 샵인샵 가게 추가도 가능합니다. 상담 신청하시면 담당 매니저가 안내해 드립니다.' },
+      { id: 30, question: '배달지역, 최소주문금액, 배달비는 사장님이 설정할 수 있나요?', answer: '네. 매장 운영 상황에 맞게 배달지역과 최소주문금액, 기본 배달비 및 추가 배달비 등을 설정할 수 있습니다. 구체적인 설정 방법은 입점 과정에서 안내해드립니다.' },
+      { id: 31, question: '땡겨요에 입점하면 바로 주문이 들어오나요?', answer: '입점했다고 모든 매장에 동일한 주문이 발생하는 것은 아닙니다. 주문량은 지역의 땡겨요 이용자 수, 메뉴와 가격, 매장 운영시간, 고객 혜택과 진행 중인 프로모션 등에 따라 달라질 수 있습니다. 입점 이후에는 매장 상황과 지역에서 활용할 수 있는 혜택을 확인해 주문 활성화에 도움이 되는 운영 방향을 함께 안내해드립니다.' },
+      { id: 16, question: '땡겨요 입점 신청 전에 먼저 상담받을 수 있나요?', answer: '네. 바로 입점을 결정하지 않아도 먼저 상담을 받을 수 있습니다. 상담을 통해 수수료, 입점 절차, 필요한 서류, 현재 받을 수 있는 혜택 등을 확인한 후 입점 여부를 결정하시면 됩니다.' },
+      { id: 24, question: '입점 후에도 상담을 받을 수 있나요?', answer: '네. 입점으로 끝나는 것이 아니라 입점 이후에도 매장 상황에 맞는 운영 안내와 컨설팅을 제공합니다. 필요한 경우 매출 활성화에 도움이 될 수 있는 방향도 함께 안내합니다.' },
+    ],
+  },
+  {
+    id: 'benefits',
+    label: '혜택·정산',
+    items: [
+      { id: 17, question: '땡겨요에서 지역화폐를 사용할 수 있나요?', answer: '지역에 따라 땡겨요에서 지역화폐 혜택을 이용할 수 있습니다. 사용 가능한 지역과 혜택은 지역별 정책과 프로모션에 따라 달라질 수 있습니다.' },
+      { id: 18, question: '온누리상품권도 땡겨요에서 사용할 수 있나요?', answer: '온누리상품권을 이용할 수 있는 매장과 지역이 있습니다. 실제 적용 여부는 매장 및 관련 조건에 따라 달라질 수 있습니다.' },
+      { id: 19, question: '고객이 받을 수 있는 땡겨요 혜택도 있나요?', answer: '네. 땡겨요에서는 첫 주문 할인, 쿠폰팩, 브랜드 할인, 지역화폐 등 다양한 고객 혜택을 제공하고 있습니다. 구체적인 혜택과 제공 기간은 진행 중인 프로모션에 따라 달라질 수 있습니다.' },
+      { id: 20, question: '땡겨요 입점 시 받을 수 있는 지자체 지원금 혜택이 있나요?', answer: '지역에 따라 땡겨요 입점 매장을 대상으로 할인쿠폰, 프로모션 비용 지원, 지역화폐 연계 혜택 등 지자체 지원사업이 운영되는 경우가 있습니다. 지원 여부와 금액, 적용 조건은 지자체와 시기별 정책에 따라 달라질 수 있으며, 상담 시 현재 적용 가능한 혜택을 확인해드립니다.' },
+      { id: 32, question: '땡겨요 고객 할인쿠폰 비용은 사장님이 부담하나요?', answer: '땡겨요에는 땡겨요나 지자체 등이 지원하는 고객 할인쿠폰과 사장님이 선택해 운영하는 할인 혜택이 있습니다. 프로모션마다 비용 부담 방식과 적용 조건이 다를 수 있으므로, 진행 전 사장님 부담 여부를 확인할 수 있도록 안내해드립니다.' },
+      { id: 33, question: '땡겨요 주문 금액은 언제 입금되나요?', answer: '땡겨요 정산은 결제수단에 따라 다르며, 영업일 기준 최대 주문일(D)+3일 이내에 정산대금이 입금됩니다. 카드결제는 D+3일 오전 10시 이내, 계좌이체는 주문 시간에 따라 당일 또는 D+1일에 입금됩니다. 카드결제는 즉시출금을 요청하면 D+1일에 정산받을 수 있습니다. 지역사랑상품권, 휴대폰 소액결제, 복합결제 등은 일반적으로 D+3일에 정산됩니다.' },
+      { id: 21, question: '땡겨요 정산계좌는 꼭 신한은행 계좌여야 하나요?', answer: '아니요. 신한은행 계좌만 사용해야 하는 것은 아닙니다. 정산계좌는 사장님이 선택할 수 있습니다.' },
+      { id: 22, question: '땡겨요 정산계좌를 신한은행으로 사용하면 어떤 혜택이 있나요?', answer: '현재 기준으로 땡겨요 정산계좌를 신한은행 계좌로 등록하면 고객이 다운로드해 사용할 수 있는 총 10만원 상당의 쿠폰을 제공해드립니다. 이를 통해 입점 초기 고객 유입과 주문 활성화에 도움을 받을 수 있습니다. 또한 신한은행에서 대출을 신청할 경우 우대 혜택을 적용받을 수 있습니다.' },
+      { id: 23, question: '신한은행 정산계좌 등록 시 제공되는 10만원 쿠폰을 사장님이 받는 건가요?', answer: '아니요. 사장님에게 현금이나 쿠폰 10만원을 직접 지급하는 방식이 아닙니다. 고객이 다운로드해 해당 매장에서 사용할 수 있는 총 10만원 상당의 쿠폰이 제공되는 방식이며, 이를 통해 입점 초기 고객 유입과 주문 활성화에 도움을 받을 수 있습니다.' },
+    ],
+  },
 ] as const;
 
-function FoodOrbit() {
-  return (
-    <div className="food-orbit" aria-hidden="true">
-      <i className="orbit-ring ring-a" /><i className="orbit-ring ring-b" /><i className="orbit-ring ring-c" />
-      <span className="food-token food-a"><i /><i /><i /></span>
-      <span className="food-token food-b"><i /><i /><i /></span>
-      <span className="food-token food-c"><i /><i /><i /></span>
-    </div>
-  );
-}
+const commonFaqs = [
+  { id: 25, question: '땡겨요 입점 신청은 어떻게 하면 되나요?', answer: '홈페이지의 무료 입점 상담 버튼을 눌러 간단한 매장 정보를 남겨주세요. 이후 전담 매니저가 확인하고 입점 상담을 진행합니다.' },
+  { id: 35, question: '땡겨요 입점 상담은 어디로 전화하면 되나요?', answer: '땡겨요 입점 상담은 1555-1984로 전화해 주세요. 매장 상황을 확인한 후 입점에 필요한 절차와 준비사항을 안내해드립니다.' },
+] as const;
 
-function CopyBlock({ eyebrow, title, body, align = 'left' }: { eyebrow: string; title: string; body: React.ReactNode; align?: 'left' | 'right' }) {
-  return (
-    <div className={`feature-copy align-${align}`}>
-      <h2><em>{eyebrow}</em><span>{title}</span></h2>
-      <p>{body}</p>
-    </div>
-  );
-}
+type FaqCategoryId = (typeof faqCategories)[number]['id'];
+type FaqItem = Readonly<{ id: number; question: string; answer: string }>;
 
 function App() {
   const [active, setActive] = useState(() => {
     const parsed = Number(window.location.hash.replace('#', ''));
     return Number.isInteger(parsed) && parsed >= 0 && parsed < sectionCount ? parsed : 0;
   });
+  const [heroMuted, setHeroMuted] = useState(true);
+  const [useMobileHeroVideo, setUseMobileHeroVideo] = useState(() => window.matchMedia(mobileHeroQuery).matches);
+  const useMobileOwnerBenefitVideo = useMobileHeroVideo && Boolean(mobileOwnerBenefitVideoSrc);
+  const [empathySteps, setEmpathySteps] = useState<Record<number, number>>({ 1: 0, 2: 0, 3: 0 });
+  const [ownerBenefitStep, setOwnerBenefitStep] = useState(0);
+  const [faqCategory, setFaqCategory] = useState<FaqCategoryId>('cost');
+  const [openFaqId, setOpenFaqId] = useState<number | null>(1);
+  const [ctaPauseScreen, setCtaPauseScreen] = useState<number | null>(null);
+  const [ctaScrollReacting, setCtaScrollReacting] = useState(false);
+  const [privacyDetailsOpen, setPrivacyDetailsOpen] = useState(false);
+  const [selectedDeliveryApps, setSelectedDeliveryApps] = useState<string[]>([]);
+  const [deliveryAppsError, setDeliveryAppsError] = useState(false);
+  const [deliveryAppsAlerting, setDeliveryAppsAlerting] = useState(false);
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const mobileOwnerBenefitVideoRef = useRef<HTMLVideoElement>(null);
+  const desktopOwnerBenefitVideoRef = useRef<HTMLVideoElement>(null);
+  const mobileFreeVideoEndedRef = useRef(false);
+  const desktopFreeVideoEndedRef = useRef(false);
   const activeRef = useRef(active);
-  const lockedRef = useRef(false);
+  const heroMutedRef = useRef(heroMuted);
+  const useMobileHeroVideoRef = useRef(useMobileHeroVideo);
+  const empathyStepsRef = useRef(empathySteps);
+  const ownerBenefitStepRef = useRef(ownerBenefitStep);
+  const ctaPauseScreenRef = useRef<number | null>(null);
+  const screenLockedRef = useRef(false);
+  const empathyLockedRef = useRef(false);
+  const ctaPauseInputLockedRef = useRef(false);
+  const screenLockTimerRef = useRef<number | null>(null);
+  const empathyLockTimerRef = useRef<number | null>(null);
+  const ctaPauseInputLockTimerRef = useRef<number | null>(null);
+  const ctaScrollReactionTimerRef = useRef<number | null>(null);
+  const ownerBenefitAutoPlayingRef = useRef(false);
+  const ownerBenefitAutoTimerRef = useRef<number | null>(null);
+  const ownerBenefitCtaTimerRef = useRef<number | null>(null);
+  const ownerBenefitBurstWrapRef = useRef<HTMLDivElement>(null);
+  const ownerBenefitBurstImageRef = useRef<HTMLImageElement>(null);
+  const ownerBenefitBurstShadowRef = useRef<HTMLDivElement>(null);
+  const ownerBenefitBurstFlashRef = useRef<HTMLDivElement>(null);
+  const ownerBenefitBurstRingOneRef = useRef<HTMLDivElement>(null);
+  const ownerBenefitBurstRingTwoRef = useRef<HTMLDivElement>(null);
+  const ownerBenefitBurstDotRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const ownerBenefitBurstAnimationsRef = useRef<Animation[]>([]);
+  const ownerBenefitAudioContextRef = useRef<AudioContext | null>(null);
+  const ownerBenefitNoiseBufferRef = useRef<AudioBuffer | null>(null);
+  const ownerBenefitBurstMasterGainRef = useRef<GainNode | null>(null);
+  const ownerBenefitBurstAudioSourcesRef = useRef<AudioScheduledSourceNode[]>([]);
+  const ownerBenefitBurstAudioGainsRef = useRef<GainNode[]>([]);
+  const faqScrollRef = useRef<HTMLDivElement>(null);
+  const consultationPageRef = useRef<HTMLElement>(null);
+  const screenNavigationRef = useRef<(screen: number) => void>(() => undefined);
+
+  const playCtaScrollReaction = () => {
+    if (activeRef.current === 8) return;
+    setCtaScrollReacting(true);
+    if (ctaScrollReactionTimerRef.current !== null) window.clearTimeout(ctaScrollReactionTimerRef.current);
+    ctaScrollReactionTimerRef.current = window.setTimeout(() => {
+      setCtaScrollReacting(false);
+      ctaScrollReactionTimerRef.current = null;
+    }, 260);
+  };
+
+  const setCtaPauseState = (screen: number | null) => {
+    const enteringCtaPause = ctaPauseScreenRef.current === null && screen !== null;
+    ctaPauseScreenRef.current = screen;
+    setCtaPauseScreen(screen);
+    if (enteringCtaPause) playCtaScrollReaction();
+  };
+
+  const getOwnerBenefitAudioContext = () => {
+    let context = ownerBenefitAudioContextRef.current;
+    if (!context) {
+      const AudioContextClass = window.AudioContext
+        || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return null;
+      context = new AudioContextClass();
+      ownerBenefitAudioContextRef.current = context;
+
+      const noiseBuffer = context.createBuffer(1, context.sampleRate * 0.6, context.sampleRate);
+      const noiseData = noiseBuffer.getChannelData(0);
+      for (let index = 0; index < noiseData.length; index += 1) {
+        noiseData[index] = (Math.random() * 2 - 1) * (1 - index / noiseData.length);
+      }
+      ownerBenefitNoiseBufferRef.current = noiseBuffer;
+    }
+    if (context.state === 'suspended') void context.resume().catch(() => undefined);
+    return context;
+  };
+
+  const stopOwnerBenefitBell = () => {
+    const context = ownerBenefitAudioContextRef.current;
+    const masterGain = ownerBenefitBurstMasterGainRef.current;
+    const now = context?.currentTime ?? 0;
+
+    if (masterGain) {
+      masterGain.gain.cancelScheduledValues(now);
+      masterGain.gain.setValueAtTime(0, now);
+    }
+    ownerBenefitBurstAudioSourcesRef.current.forEach((source) => {
+      try { source.stop(now); } catch { /* The source may already have ended. */ }
+      source.disconnect();
+    });
+    ownerBenefitBurstAudioGainsRef.current.forEach((gain) => gain.disconnect());
+    masterGain?.disconnect();
+
+    ownerBenefitBurstAudioSourcesRef.current = [];
+    ownerBenefitBurstAudioGainsRef.current = [];
+    ownerBenefitBurstMasterGainRef.current = null;
+  };
+
+  const playOwnerBenefitBell = () => {
+    const context = getOwnerBenefitAudioContext();
+    if (!context) return;
+    stopOwnerBenefitBell();
+    const masterGain = context.createGain();
+    masterGain.gain.value = 0.8;
+    masterGain.connect(context.destination);
+    ownerBenefitBurstMasterGainRef.current = masterGain;
+    const seconds = desktopOwnerBenefitAnimationDuration / 1000;
+    const tone = (
+      at: number,
+      startFrequency: number,
+      endFrequency: number,
+      duration: number,
+      peakGain: number,
+      type: OscillatorType = 'sine',
+    ) => {
+      const startAt = context.currentTime + at;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(startFrequency, startAt);
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(endFrequency, 1), startAt + duration);
+      gain.gain.setValueAtTime(0.0001, startAt);
+      gain.gain.exponentialRampToValueAtTime(peakGain, startAt + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+      oscillator.connect(gain);
+      gain.connect(masterGain);
+      ownerBenefitBurstAudioSourcesRef.current.push(oscillator);
+      ownerBenefitBurstAudioGainsRef.current.push(gain);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + duration + 0.05);
+    };
+
+    tone(0.135 * seconds, 140, 52, 0.4 * seconds, 0.24);
+    ([[660, 0.05], [990, 0.03], [1320, 0.018]] as const).forEach(([frequency, gain], index) => {
+      tone((0.16 + index * 0.015) * seconds, frequency, frequency * 0.985, 1.25 * seconds, gain);
+    });
+    ([0.034, 0.026, 0.019, 0.013, 0.008] as const).forEach((gain, index) => {
+      tone(ownerBenefitBurstLand[index] * seconds, 1320 + index * 120, 1320 + index * 120, 0.3 * seconds, gain);
+      tone(ownerBenefitBurstLand[index] * seconds, 132 + index * 6, 60, 0.16 * seconds, gain * 1.6);
+    });
+  };
+
+  const cancelOwnerBenefitBurst = () => {
+    const elements = [
+      ownerBenefitBurstImageRef.current,
+      ownerBenefitBurstShadowRef.current,
+      ownerBenefitBurstWrapRef.current,
+      ownerBenefitBurstFlashRef.current,
+      ownerBenefitBurstRingOneRef.current,
+      ownerBenefitBurstRingTwoRef.current,
+      ...ownerBenefitBurstDotRefs.current,
+    ];
+    elements.forEach((element) => element?.getAnimations().forEach((animation) => animation.cancel()));
+    ownerBenefitBurstAnimationsRef.current.forEach((animation) => animation.cancel());
+    ownerBenefitBurstAnimationsRef.current = [];
+    [
+      ownerBenefitBurstShadowRef.current,
+      ownerBenefitBurstFlashRef.current,
+      ownerBenefitBurstRingOneRef.current,
+      ownerBenefitBurstRingTwoRef.current,
+      ...ownerBenefitBurstDotRefs.current,
+    ].forEach((element) => {
+      if (element) element.style.opacity = '0';
+    });
+  };
+
+  const playOwnerBenefitBurst = () => {
+    cancelOwnerBenefitBurst();
+    try { playOwnerBenefitBell(); } catch { /* Visual playback must not depend on audio. */ }
+
+    const animate = (element: Element | null, frames: Keyframe[]) => {
+      if (!element) return null;
+      const animation = element.animate(frames, {
+        duration: desktopOwnerBenefitAnimationDuration,
+        fill: 'both',
+        iterations: 1,
+      });
+      ownerBenefitBurstAnimationsRef.current.push(animation);
+      return animation;
+    };
+
+    animate(ownerBenefitBurstImageRef.current, [
+      { offset: 0, transform: 'translateY(0px) scale(0.35)', opacity: 0, filter: 'blur(10px)', easing: ownerBenefitBurstEase.swift },
+      { offset: 0.06, opacity: 1, easing: ownerBenefitBurstEase.swift },
+      { offset: 0.135, transform: 'translateY(0px) scale(1.07)', opacity: 1, filter: 'blur(0px)', easing: ownerBenefitBurstEase.settle },
+      { offset: 0.21, transform: 'translateY(0px) scale(0.955)', easing: ownerBenefitBurstEase.up },
+      { offset: 0.31, transform: 'translateY(-34px) scale(1.05)', easing: ownerBenefitBurstEase.down },
+      { offset: 0.42, transform: 'translateY(0px) scale(0.975)', easing: ownerBenefitBurstEase.up },
+      { offset: 0.51, transform: 'translateY(-19px) scale(1.03)', easing: ownerBenefitBurstEase.down },
+      { offset: 0.60, transform: 'translateY(0px) scale(0.986)', easing: ownerBenefitBurstEase.up },
+      { offset: 0.68, transform: 'translateY(-10px) scale(1.016)', easing: ownerBenefitBurstEase.down },
+      { offset: 0.76, transform: 'translateY(0px) scale(0.993)', easing: ownerBenefitBurstEase.up },
+      { offset: 0.83, transform: 'translateY(-5px) scale(1.008)', easing: ownerBenefitBurstEase.down },
+      { offset: 0.89, transform: 'translateY(0px) scale(0.997)', easing: ownerBenefitBurstEase.up },
+      { offset: 0.945, transform: 'translateY(-2px) scale(1.003)', easing: ownerBenefitBurstEase.down },
+      { offset: 1, transform: 'translateY(0px) scale(1)', opacity: 1, filter: 'blur(0px)' },
+    ]);
+    animate(ownerBenefitBurstShadowRef.current, [
+      { offset: 0, transform: 'translateX(-50%) scaleX(0.5)', opacity: 0 },
+      { offset: 0.135, transform: 'translateX(-50%) scaleX(1.14)', opacity: 0.8, easing: ownerBenefitBurstEase.up },
+      { offset: 0.31, transform: 'translateX(-50%) scaleX(0.74)', opacity: 0.22, easing: ownerBenefitBurstEase.down },
+      { offset: 0.42, transform: 'translateX(-50%) scaleX(1.08)', opacity: 0.62, easing: ownerBenefitBurstEase.up },
+      { offset: 0.51, transform: 'translateX(-50%) scaleX(0.82)', opacity: 0.3, easing: ownerBenefitBurstEase.down },
+      { offset: 0.60, transform: 'translateX(-50%) scaleX(1.04)', opacity: 0.5, easing: ownerBenefitBurstEase.up },
+      { offset: 0.68, transform: 'translateX(-50%) scaleX(0.9)', opacity: 0.3, easing: ownerBenefitBurstEase.down },
+      { offset: 0.76, transform: 'translateX(-50%) scaleX(1.01)', opacity: 0.4, easing: ownerBenefitBurstEase.settle },
+      { offset: 0.89, transform: 'translateX(-50%) scaleX(0.98)', opacity: 0.2 },
+      { offset: 1, transform: 'translateX(-50%) scaleX(0.96)', opacity: 0 },
+    ]);
+    animate(ownerBenefitBurstWrapRef.current, [
+      { offset: 0, transform: 'translate(0px, 0px)' },
+      { offset: 0.135, transform: 'translate(0px, 0px)' },
+      { offset: 0.165, transform: 'translate(5px, -4px)' },
+      { offset: 0.195, transform: 'translate(-4px, 3px)' },
+      { offset: 0.225, transform: 'translate(2px, -2px)' },
+      { offset: 0.25, transform: 'translate(0px, 0px)' },
+      { offset: 1, transform: 'translate(0px, 0px)' },
+    ]);
+    animate(ownerBenefitBurstFlashRef.current, [
+      { offset: 0, opacity: 0 },
+      { offset: 0.09, opacity: 0, easing: ownerBenefitBurstEase.soft },
+      { offset: 0.145, opacity: 0.55, easing: ownerBenefitBurstEase.out },
+      { offset: 0.3, opacity: 0 },
+      { offset: 1, opacity: 0 },
+    ]);
+    ([
+      [ownerBenefitBurstRingOneRef.current, 1.6, 0.115],
+      [ownerBenefitBurstRingTwoRef.current, 1.95, 0.15],
+    ] as const).forEach(([ring, finalScale, startOffset]) => {
+      animate(ring, [
+        { offset: 0, transform: 'translate(-50%, -50%) scale(0.2)', opacity: 0 },
+        { offset: startOffset, transform: 'translate(-50%, -50%) scale(0.3)', opacity: 0.8, easing: ownerBenefitBurstEase.expo },
+        { offset: startOffset + 0.28, transform: `translate(-50%, -50%) scale(${finalScale})`, opacity: 0 },
+        { offset: 1, transform: `translate(-50%, -50%) scale(${finalScale})`, opacity: 0 },
+      ]);
+    });
+    ownerBenefitBurstDotRefs.current.forEach((dot, index, dots) => {
+      const angle = (index / dots.length) * Math.PI * 2 - Math.PI / 2;
+      const radius = 150 + (index % 4) * 36;
+      const translateX = Math.cos(angle) * radius;
+      const translateY = Math.sin(angle) * radius;
+      const finalTransform = `translate(${translateX}px, ${translateY}px) scale(0.15)`;
+      animate(dot, [
+        { offset: 0, transform: 'translate(0px, 0px) scale(0.2)', opacity: 0 },
+        { offset: 0.115, transform: 'translate(0px, 0px) scale(1.2)', opacity: 1, easing: ownerBenefitBurstEase.expo },
+        { offset: 0.36, transform: finalTransform, opacity: 0 },
+        { offset: 1, transform: finalTransform, opacity: 0 },
+      ]);
+    });
+  };
+
+  const enterOwnerBenefitCtaPause = () => {
+    if (activeRef.current !== 4) return;
+    ownerBenefitAutoPlayingRef.current = false;
+    setCtaPauseState(4);
+    ctaPauseInputLockedRef.current = true;
+    if (ctaPauseInputLockTimerRef.current !== null) window.clearTimeout(ctaPauseInputLockTimerRef.current);
+    ctaPauseInputLockTimerRef.current = window.setTimeout(() => {
+      ctaPauseInputLockedRef.current = false;
+      ctaPauseInputLockTimerRef.current = null;
+    }, 320);
+  };
 
   useEffect(() => { activeRef.current = active; }, [active]);
+  useEffect(() => { heroMutedRef.current = heroMuted; }, [heroMuted]);
+  useEffect(() => { useMobileHeroVideoRef.current = useMobileHeroVideo; }, [useMobileHeroVideo]);
+  useEffect(() => {
+    if (active !== 7) return;
+    setFaqCategory('cost');
+    setOpenFaqId(1);
+    requestAnimationFrame(() => {
+      if (faqScrollRef.current) faqScrollRef.current.scrollTop = 0;
+    });
+  }, [active]);
+  useEffect(() => {
+    if (active !== 8) return;
+    requestAnimationFrame(() => {
+      if (consultationPageRef.current) consultationPageRef.current.scrollTop = 0;
+    });
+  }, [active, useMobileHeroVideo]);
+  useEffect(() => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+    const shouldMuteHero = heroMuted || active !== 0;
+    video.muted = shouldMuteHero;
+    if (!shouldMuteHero) void video.play().catch(() => undefined);
+  }, [active, heroMuted]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(mobileHeroQuery);
+    const syncHeroVideo = (event: MediaQueryListEvent) => setUseMobileHeroVideo(event.matches);
+    mediaQuery.addEventListener('change', syncHeroVideo);
+    return () => mediaQuery.removeEventListener('change', syncHeroVideo);
+  }, []);
+
+  useEffect(() => {
+    const preloadedImages = ownerBenefitStepImages.map((src) => {
+      const image = new Image();
+      image.src = src;
+      if (typeof image.decode === 'function') void image.decode().catch(() => undefined);
+      return image;
+    });
+    return () => preloadedImages.forEach((image) => { image.src = ''; });
+  }, []);
+
+  useEffect(() => {
+    mobileFreeVideoEndedRef.current = false;
+    const video = mobileOwnerBenefitVideoRef.current;
+    if (!video) return;
+    let cancelled = false;
+    video.pause();
+    if (useMobileOwnerBenefitVideo && active === 4) {
+      video.volume = 0.18;
+      video.currentTime = 0;
+      video.muted = false;
+      void video.play().catch((error: unknown) => {
+        if (cancelled || activeRef.current !== 4) return;
+        // Safari/Chrome can reject audible autoplay. Retry silently without new UI.
+        if (error instanceof DOMException && error.name === 'NotAllowedError') {
+          video.muted = true;
+          void video.play().catch(() => undefined);
+        }
+      });
+    }
+    // Do not reset on ended: the native video retains its final frame.
+    return () => { cancelled = true; video.pause(); };
+  }, [active, useMobileOwnerBenefitVideo]);
+
+  useEffect(() => {
+    // Keep the legacy image sequence intact, but bypass it in mobile video mode.
+    if (useMobileOwnerBenefitVideo || active !== 4) {
+      ownerBenefitAutoPlayingRef.current = false;
+      return;
+    }
+
+    ownerBenefitAutoPlayingRef.current = true;
+    ownerBenefitStepRef.current = 0;
+    setOwnerBenefitStep(0);
+    ctaPauseScreenRef.current = null;
+    setCtaPauseScreen(null);
+
+    if (!useMobileHeroVideo && desktopOwnerBenefitVideoSrc) {
+      const video = desktopOwnerBenefitVideoRef.current;
+      let cancelled = false;
+      desktopFreeVideoEndedRef.current = false;
+      if (video) {
+        video.currentTime = 0;
+        video.muted = false;
+        void video.play().catch((error: unknown) => {
+          if (cancelled || activeRef.current !== 4) return;
+          if (error instanceof DOMException && error.name === 'NotAllowedError') {
+            video.muted = true;
+            void video.play().catch(() => undefined);
+          }
+        });
+      }
+      return () => {
+        cancelled = true;
+        video?.pause();
+        ownerBenefitAutoPlayingRef.current = false;
+      };
+    }
+
+    if (!useMobileHeroVideo) {
+      let cancelled = false;
+      let decodeTimer: number | null = null;
+      cancelOwnerBenefitBurst();
+
+      const artwork = ownerBenefitBurstImageRef.current;
+      const artworkReady = artwork && typeof artwork.decode === 'function'
+        ? artwork.decode().catch(() => undefined)
+        : Promise.resolve();
+      const decodeTimeout = new Promise<void>((resolve) => {
+        decodeTimer = window.setTimeout(resolve, 2500);
+      });
+
+      void Promise.race([artworkReady, decodeTimeout]).then(() => {
+        if (decodeTimer !== null) window.clearTimeout(decodeTimer);
+        decodeTimer = null;
+        if (cancelled || activeRef.current !== 4) return;
+        playOwnerBenefitBurst();
+        ownerBenefitCtaTimerRef.current = window.setTimeout(() => {
+          ownerBenefitAutoPlayingRef.current = false;
+          ownerBenefitCtaTimerRef.current = null;
+        }, desktopOwnerBenefitAnimationDuration);
+      });
+
+      return () => {
+        cancelled = true;
+        ownerBenefitAutoPlayingRef.current = false;
+        if (decodeTimer !== null) window.clearTimeout(decodeTimer);
+        if (ownerBenefitCtaTimerRef.current !== null) window.clearTimeout(ownerBenefitCtaTimerRef.current);
+        decodeTimer = null;
+        ownerBenefitCtaTimerRef.current = null;
+        stopOwnerBenefitBell();
+        cancelOwnerBenefitBurst();
+      };
+    }
+
+    ownerBenefitAutoTimerRef.current = window.setInterval(() => {
+      const nextStep = ownerBenefitStepRef.current + 1;
+      ownerBenefitStepRef.current = nextStep;
+      setOwnerBenefitStep(nextStep);
+
+      if (nextStep < ownerBenefitFinalStep) return;
+      if (ownerBenefitAutoTimerRef.current !== null) {
+        window.clearInterval(ownerBenefitAutoTimerRef.current);
+        ownerBenefitAutoTimerRef.current = null;
+      }
+      ownerBenefitCtaTimerRef.current = window.setTimeout(() => {
+        enterOwnerBenefitCtaPause();
+        ownerBenefitCtaTimerRef.current = null;
+      }, ownerBenefitAutoStepDuration);
+    }, ownerBenefitAutoStepDuration);
+
+    return () => {
+      ownerBenefitAutoPlayingRef.current = false;
+      if (ownerBenefitAutoTimerRef.current !== null) window.clearInterval(ownerBenefitAutoTimerRef.current);
+      if (ownerBenefitCtaTimerRef.current !== null) window.clearTimeout(ownerBenefitCtaTimerRef.current);
+      ownerBenefitAutoTimerRef.current = null;
+      ownerBenefitCtaTimerRef.current = null;
+    };
+  }, [active, useMobileHeroVideo, useMobileOwnerBenefitVideo]);
 
   useEffect(() => {
     const sections = [...document.querySelectorAll<HTMLElement>('[data-screen]')];
+    const empathyStepCounts: Record<number, number> = { 1: 3, 2: 3, 3: 4 };
     const initial = Math.min(Math.max(activeRef.current, 0), sections.length - 1);
     const previousScrollBehavior = document.documentElement.style.scrollBehavior;
     document.documentElement.style.scrollBehavior = 'auto';
@@ -61,25 +574,289 @@ function App() {
     }, { threshold: [0.55, 0.72] });
     sections.forEach((section) => observer.observe(section));
 
-    const go = (next: number) => {
+    const setEmpathyStep = (screen: number, step: number) => {
+      const nextSteps = { ...empathyStepsRef.current, [screen]: step };
+      empathyStepsRef.current = nextSteps;
+      setEmpathySteps(nextSteps);
+    };
+
+    const setOwnerBenefitStepValue = (step: number) => {
+      ownerBenefitStepRef.current = step;
+      setOwnerBenefitStep(step);
+    };
+
+    const holdScreenLock = () => {
+      screenLockedRef.current = true;
+      if (screenLockTimerRef.current !== null) window.clearTimeout(screenLockTimerRef.current);
+      screenLockTimerRef.current = window.setTimeout(() => {
+        screenLockedRef.current = false;
+        screenLockTimerRef.current = null;
+      }, 820);
+    };
+
+    const holdEmpathyLock = () => {
+      empathyLockedRef.current = true;
+      if (empathyLockTimerRef.current !== null) window.clearTimeout(empathyLockTimerRef.current);
+      empathyLockTimerRef.current = window.setTimeout(() => {
+        empathyLockedRef.current = false;
+        empathyLockTimerRef.current = null;
+      }, 320);
+    };
+
+    const holdCtaPauseInputLock = () => {
+      ctaPauseInputLockedRef.current = true;
+      if (ctaPauseInputLockTimerRef.current !== null) window.clearTimeout(ctaPauseInputLockTimerRef.current);
+      ctaPauseInputLockTimerRef.current = window.setTimeout(() => {
+        ctaPauseInputLockedRef.current = false;
+        ctaPauseInputLockTimerRef.current = null;
+      }, 320);
+    };
+
+    const go = (next: number, entryDirection = 0, forceNavigation = false) => {
       const index = Math.min(Math.max(next, 0), sections.length - 1);
-      if (index === activeRef.current || lockedRef.current) return;
-      lockedRef.current = true;
+      if (!forceNavigation && (index === activeRef.current || screenLockedRef.current)) return;
+      if (activeRef.current === 8 && index !== 8 && consultationPageRef.current) {
+        consultationPageRef.current.scrollTop = 0;
+      }
+      if (index === 4 && !useMobileHeroVideoRef.current && !desktopOwnerBenefitVideoSrc) {
+        try { getOwnerBenefitAudioContext(); } catch { /* Audio must not affect navigation. */ }
+      }
+      const heroVideo = heroVideoRef.current;
+      if (heroVideo) {
+        heroVideo.muted = index !== 0 || heroMutedRef.current;
+        if (index === 0 && !heroMutedRef.current) void heroVideo.play().catch(() => undefined);
+      }
+      setCtaPauseState(null);
+      const targetStepCount = empathyStepCounts[index];
+      if (targetStepCount) {
+        setEmpathyStep(index, entryDirection < 0 ? targetStepCount - 1 : 0);
+        holdEmpathyLock();
+      } else if (index === 4) {
+        setOwnerBenefitStepValue(entryDirection < 0 ? ownerBenefitFinalStep : 0);
+        holdEmpathyLock();
+      }
+      holdScreenLock();
       activeRef.current = index;
       setActive(index);
       history.replaceState(null, '', `#${index}`);
       sections[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      window.setTimeout(() => { lockedRef.current = false; }, 820);
     };
 
-    const onWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) < 18 || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
-      event.preventDefault();
-      go(activeRef.current + (event.deltaY > 0 ? 1 : -1));
+    screenNavigationRef.current = (screen) => go(screen, 0, true);
+
+    const consumeEmpathyStep = (direction: -1 | 1) => {
+      const screen = activeRef.current;
+      const stepCount = empathyStepCounts[screen];
+      if (!stepCount) return false;
+      if (empathyLockedRef.current) {
+        holdEmpathyLock();
+        return true;
+      }
+      const currentStep = empathyStepsRef.current[screen] ?? 0;
+      const nextStep = currentStep + direction;
+      if (nextStep < 0 || nextStep >= stepCount) return false;
+      setEmpathyStep(screen, nextStep);
+      holdEmpathyLock();
+      return true;
     };
+
+    const consumeOwnerBenefitStep = (direction: -1 | 1) => {
+      if (activeRef.current !== 4) return false;
+      if (useMobileHeroVideoRef.current && mobileOwnerBenefitVideoSrc) return false;
+      if (ownerBenefitAutoPlayingRef.current) return true;
+      if (!useMobileHeroVideoRef.current) return false;
+      if (empathyLockedRef.current) {
+        holdEmpathyLock();
+        return true;
+      }
+      const nextStep = ownerBenefitStepRef.current + direction;
+      if (nextStep < 0 || nextStep > ownerBenefitFinalStep) return false;
+      setOwnerBenefitStepValue(nextStep);
+      holdEmpathyLock();
+      return true;
+    };
+
+    const handleDirectionalInput = (direction: -1 | 1) => {
+      if (direction > 0 && activeRef.current === 4 && useMobileHeroVideoRef.current
+        && mobileOwnerBenefitVideoSrc && !mobileFreeVideoEndedRef.current) return;
+      if (direction > 0 && activeRef.current === 4 && !useMobileHeroVideoRef.current
+        && desktopOwnerBenefitVideoSrc && !desktopFreeVideoEndedRef.current) return;
+      if (ctaPauseInputLockedRef.current) return;
+      const screen = activeRef.current;
+      if (direction < 0 && screen === 1) {
+        go(0, direction);
+        return;
+      }
+      if (direction < 0 && screen >= 2 && screen <= 4) {
+        go(screen - 1, direction);
+        return;
+      }
+      if (direction > 0 && screen === 4 && !useMobileHeroVideoRef.current
+        && desktopOwnerBenefitVideoSrc && desktopFreeVideoEndedRef.current) {
+        go(screen + 1, direction);
+        return;
+      }
+      if (ctaPauseScreenRef.current === screen) {
+        setCtaPauseState(null);
+        holdCtaPauseInputLock();
+        if (direction > 0) go(screen + 1, direction);
+        return;
+      }
+      if (empathyStepCounts[screen] && consumeEmpathyStep(direction)) return;
+      if (screen === 4 && consumeOwnerBenefitStep(direction)) return;
+      if (screenLockedRef.current) return;
+      if (direction > 0 && screen >= 1 && screen < sectionCount - 1) {
+        setCtaPauseState(screen);
+        holdCtaPauseInputLock();
+        return;
+      }
+      go(screen + direction, direction);
+    };
+
+    let desktopFreeLastWheelAt = -Infinity;
+    let desktopFreeWheelConsumed = false;
+    let mobileFreeLastWheelAt = -Infinity;
+    let mobileFreeWheelConsumed = false;
+    const onWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) < 1 || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      const direction = event.deltaY > 0 ? 1 : -1;
+      if (direction > 0 && activeRef.current === 4 && !useMobileHeroVideoRef.current && desktopOwnerBenefitVideoSrc) {
+        const now = performance.now();
+        if (now - desktopFreeLastWheelAt > 320) desktopFreeWheelConsumed = false;
+        desktopFreeLastWheelAt = now;
+        if (!desktopFreeVideoEndedRef.current || desktopFreeWheelConsumed) {
+          desktopFreeWheelConsumed = true;
+          event.preventDefault();
+          return;
+        }
+        desktopFreeWheelConsumed = true;
+      }
+      if (direction > 0 && activeRef.current === 4 && useMobileHeroVideoRef.current && mobileOwnerBenefitVideoSrc) {
+        const now = performance.now();
+        // Require a quiet gap equal to the existing 320ms input lock. No playback timer.
+        if (now - mobileFreeLastWheelAt > 320) mobileFreeWheelConsumed = false;
+        mobileFreeLastWheelAt = now;
+        if (!mobileFreeVideoEndedRef.current || mobileFreeWheelConsumed) {
+          mobileFreeWheelConsumed = true;
+          event.preventDefault();
+          return;
+        }
+        mobileFreeWheelConsumed = true;
+      }
+      const faqScroller = faqScrollRef.current;
+      const faqTarget = event.target instanceof Node && faqScroller?.contains(event.target);
+      if (activeRef.current === 7 && !useMobileHeroVideoRef.current && faqScroller && faqTarget) {
+        const maxScrollTop = faqScroller.scrollHeight - faqScroller.clientHeight;
+        const canScroll = direction > 0
+          ? faqScroller.scrollTop < maxScrollTop - 1
+          : faqScroller.scrollTop > 1;
+        if (canScroll) {
+          event.preventDefault();
+          faqScroller.scrollTop += event.deltaY;
+          return;
+        }
+      }
+      const consultationScroller = consultationPageRef.current;
+      const consultationTarget = event.target instanceof Node && consultationScroller?.contains(event.target);
+      if (activeRef.current === 8 && consultationScroller && consultationTarget) {
+        const maxScrollTop = consultationScroller.scrollHeight - consultationScroller.clientHeight;
+        const canScroll = direction > 0
+          ? consultationScroller.scrollTop < maxScrollTop - 1
+          : consultationScroller.scrollTop > 1;
+        if (canScroll) {
+          event.preventDefault();
+          consultationScroller.scrollTop += event.deltaY;
+          return;
+        }
+      }
+      event.preventDefault();
+      handleDirectionalInput(direction);
+    };
+    let ownerBenefitTouchStartY: number | null = null;
+    let ownerBenefitTouchStartedBeforeVideoEnd = false;
+    let empathyTouchStart: { x: number; y: number; screen: number } | null = null;
+    const onTouchStart = (event: TouchEvent) => {
+      empathyTouchStart = null;
+      if (useMobileHeroVideoRef.current && activeRef.current >= 1 && activeRef.current <= 3) {
+        if (event.touches.length !== 1) return;
+        if (event.target instanceof Element && event.target.closest('a, button, input, textarea, select')) return;
+        empathyTouchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY, screen: activeRef.current };
+        return;
+      }
+      if (activeRef.current !== 4 || event.touches.length !== 1) return;
+      ownerBenefitTouchStartY = event.touches[0].clientY;
+      ownerBenefitTouchStartedBeforeVideoEnd = useMobileHeroVideoRef.current
+        ? Boolean(mobileOwnerBenefitVideoSrc) && !mobileFreeVideoEndedRef.current
+        : Boolean(desktopOwnerBenefitVideoSrc) && !desktopFreeVideoEndedRef.current;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (empathyTouchStart) {
+        if (event.touches.length !== 1 || activeRef.current !== empathyTouchStart.screen) {
+          empathyTouchStart = null;
+          return;
+        }
+        event.preventDefault();
+        return;
+      }
+      if (activeRef.current === 4 && ownerBenefitTouchStartY !== null) event.preventDefault();
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      if (empathyTouchStart) {
+        const start = empathyTouchStart;
+        empathyTouchStart = null;
+        const end = event.changedTouches[0];
+        if (!end || event.touches.length !== 0 || activeRef.current !== start.screen) return;
+        const deltaY = start.y - end.clientY;
+        if (Math.abs(deltaY) < 24 || Math.abs(deltaY) <= Math.abs(start.x - end.clientX)) return;
+        event.preventDefault();
+        if (useMobileHeroVideoRef.current && start.screen === 1 && deltaY < 0) {
+          // A completed #1 reverse swipe is explicit Hero navigation, not a text step.
+          go(0, -1, true);
+          return;
+        }
+        if (useMobileHeroVideoRef.current && start.screen === 2 && deltaY < 0) {
+          // A completed #2 reverse swipe returns to #1 without consuming text steps.
+          go(1, -1, true);
+          return;
+        }
+        handleDirectionalInput(deltaY > 0 ? 1 : -1);
+        return;
+      }
+      if (activeRef.current !== 4 || ownerBenefitTouchStartY === null) return;
+      const endY = event.changedTouches[0]?.clientY ?? ownerBenefitTouchStartY;
+      const deltaY = ownerBenefitTouchStartY - endY;
+      ownerBenefitTouchStartY = null;
+      if (Math.abs(deltaY) < 24) return;
+      event.preventDefault();
+      if (deltaY > 0 && ownerBenefitTouchStartedBeforeVideoEnd) return;
+      handleDirectionalInput(deltaY > 0 ? 1 : -1);
+    };
+    const onTouchCancel = () => { empathyTouchStart = null; };
     const onKey = (event: KeyboardEvent) => {
-      if (['ArrowDown', 'PageDown', ' '].includes(event.key)) { event.preventDefault(); go(activeRef.current + 1); }
-      if (['ArrowUp', 'PageUp'].includes(event.key)) { event.preventDefault(); go(activeRef.current - 1); }
+      if (
+        activeRef.current === 8
+        && !useMobileHeroVideoRef.current
+        && event.target instanceof Element
+        && event.target.closest('.consultation-form')
+      ) return;
+      if (event.key === 'End' && activeRef.current === 4 && !useMobileHeroVideoRef.current
+        && desktopOwnerBenefitVideoSrc && !desktopFreeVideoEndedRef.current) {
+        event.preventDefault();
+        return;
+      }
+      const direction = ['ArrowDown', 'PageDown', ' '].includes(event.key)
+        ? 1
+        : ['ArrowUp', 'PageUp'].includes(event.key)
+          ? -1
+          : 0;
+      if (direction) {
+        event.preventDefault();
+        if (direction > 0 && event.repeat && activeRef.current === 4
+          && !useMobileHeroVideoRef.current && desktopOwnerBenefitVideoSrc) return;
+        if (direction > 0 && event.repeat && activeRef.current === 4
+          && useMobileHeroVideoRef.current && mobileOwnerBenefitVideoSrc) return;
+        handleDirectionalInput(direction);
+      }
       if (event.key === 'Home') { event.preventDefault(); go(0); }
       if (event.key === 'End') { event.preventDefault(); go(sectionCount - 1); }
     };
@@ -89,115 +866,739 @@ function App() {
     };
 
     window.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: false });
+    window.addEventListener('touchcancel', onTouchCancel);
     window.addEventListener('keydown', onKey);
     window.addEventListener('hashchange', onHash);
     return () => {
+      screenNavigationRef.current = () => undefined;
       observer.disconnect();
+      if (screenLockTimerRef.current !== null) window.clearTimeout(screenLockTimerRef.current);
+      if (empathyLockTimerRef.current !== null) window.clearTimeout(empathyLockTimerRef.current);
+      if (ctaPauseInputLockTimerRef.current !== null) window.clearTimeout(ctaPauseInputLockTimerRef.current);
+      if (ctaScrollReactionTimerRef.current !== null) window.clearTimeout(ctaScrollReactionTimerRef.current);
       window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchCancel);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('hashchange', onHash);
     };
   }, []);
 
-  const darkHeader = [2, 4, 10].includes(active);
+  const darkHeader = [1, 2, 3].includes(active);
+  const bridgeFinalActive = empathySteps[3] === 3
+    || (useMobileHeroVideo && active === 3 && ctaPauseScreen === 3);
+  const mobileFixedConsultCtaVisible = active >= 0 && active < sectionCount
+    && !(active === 4 && !useMobileHeroVideo && ctaPauseScreen !== 4);
+  const showFixedConsultCta = (!useMobileHeroVideo || mobileFixedConsultCtaVisible)
+    && active !== 8;
+  const selectedFaqCategory = faqCategories.find((category) => category.id === faqCategory) ?? faqCategories[0];
+  const postEntryConsultFaq = faqCategories
+    .find((category) => category.id === 'operation')
+    ?.items.find((item) => item.id === 24);
+  const displayedFaqItems: readonly FaqItem[] = useMobileHeroVideo
+    ? faqCategory === 'process'
+      ? [...selectedFaqCategory.items, ...commonFaqs]
+      : faqCategory === 'operation'
+        ? selectedFaqCategory.items.filter((item) => item.id !== 24)
+        : faqCategory === 'benefits'
+          ? [...selectedFaqCategory.items, ...(postEntryConsultFaq ? [postEntryConsultFaq] : [])]
+          : selectedFaqCategory.items
+    : selectedFaqCategory.items;
+  const handleConsultationSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (selectedDeliveryApps.length === 0) {
+      setDeliveryAppsError(true);
+      setDeliveryAppsAlerting(false);
+      window.requestAnimationFrame(() => setDeliveryAppsAlerting(true));
+      return;
+    }
+
+    setDeliveryAppsError(false);
+  };
+  const renderFaqItem = (item: FaqItem) => {
+    const opened = openFaqId === item.id;
+    const questionId = `faq-question-${item.id}`;
+    const answerId = `faq-answer-${item.id}`;
+    return (
+      <article className={`faq-accordion__item ${opened ? 'is-open' : ''}`} key={item.id}>
+        <h3>
+          <button
+            id={questionId}
+            className="faq-accordion__question"
+            type="button"
+            aria-expanded={opened}
+            aria-controls={answerId}
+            onClick={() => setOpenFaqId(opened ? null : item.id)}
+          >
+            <span><b aria-hidden="true">Q.</b>{item.question}</span>
+            <i className="faq-accordion__icon" aria-hidden="true" />
+          </button>
+        </h3>
+        <div
+          id={answerId}
+          className="faq-accordion__answer"
+          role="region"
+          aria-labelledby={questionId}
+          aria-hidden={!opened}
+        >
+          <div className="faq-accordion__answer-inner"><b aria-hidden="true">A.</b><p>{item.answer}</p></div>
+        </div>
+      </article>
+    );
+  };
+  const toggleHeroSound = () => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+    const nextMuted = !heroMutedRef.current;
+    heroMutedRef.current = nextMuted;
+    video.muted = nextMuted || activeRef.current !== 0;
+    setHeroMuted(nextMuted);
+    if (!video.muted) void video.play().catch(() => undefined);
+  };
 
   return (
     <>
-      <Header dark={darkHeader} />
+      <Header dark={darkHeader} hero={active === 0} mobile={useMobileHeroVideo} onNavigate={(screen) => screenNavigationRef.current(screen)} />
+      <a
+        className={`fixed-consult-cta ${showFixedConsultCta ? 'is-visible' : ''} ${ctaPauseScreen === active ? 'is-paused' : ''} ${ctaScrollReacting ? 'is-scroll-reacting' : ''}${useMobileOwnerBenefitVideo && active === 4 ? ' fixed-consult-cta--mobile-free' : ''}`}
+        href="#8"
+        onClick={(event) => { event.preventDefault(); screenNavigationRef.current(8); }}
+        aria-hidden={!showFixedConsultCta}
+        tabIndex={showFixedConsultCta ? 0 : -1}
+      >
+        무료 입점 상담
+      </a>
+      {!useMobileHeroVideo && (
+        <>
+          <a
+            className={`next-screen ${active < sectionCount - 1 ? 'is-visible' : ''}${active === 0 ? ' is-solo' : ''}`}
+            href={`#${Math.min(active + 1, sectionCount - 1)}`}
+            onClick={(event) => { event.preventDefault(); screenNavigationRef.current(Math.min(active + 1, sectionCount - 1)); }}
+            aria-label="다음 페이지로 이동"
+            aria-hidden={active === sectionCount - 1}
+            tabIndex={active < sectionCount - 1 ? 0 : -1}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6 10 6 6 6-6" />
+            </svg>
+          </a>
+          <a
+            className={`back-to-top ${active > 0 ? 'is-visible' : ''}`}
+            href="#0"
+            onClick={(event) => { event.preventDefault(); screenNavigationRef.current(0); }}
+            aria-label="맨 위로 이동"
+            aria-hidden={active === 0}
+            tabIndex={active > 0 ? 0 : -1}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6 14 6-6 6 6" />
+            </svg>
+          </a>
+        </>
+      )}
       <main className="screens">
         <section className={`screen hero ${active === 0 ? 'is-active' : ''}`} data-screen="0">
-          <FoodOrbit />
+          <video
+            ref={heroVideoRef}
+            className="hero-video"
+            src={useMobileHeroVideo ? '/videos/hero-4scene-mobile-v7.mp4' : '/videos/hero-4scene-v2.mp4'}
+            autoPlay
+            loop
+            muted={heroMuted || active !== 0}
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+          />
           <div className="hero-copy enter-up">
-            <p>너도 살고 나도 사는 우리동네 배달앱</p>
-            <h1>우리 동네 배달은<br />땡겨요 하기로 했다</h1>
-            <a className="hero-cta" href="#1">앱 다운로드</a>
+            <h1>
+              <span className="hero-line hero-line-top">오늘은</span>
+              <span className="hero-line hero-line-main">땡기는 날</span>
+            </h1>
+            <span className="hero-cta-space" aria-hidden="true" />
           </div>
-          <PhoneMock mode="home" className="hero-phone enter-phone" />
+          <video
+            className="hero-rider"
+            src="/animations/bora-rider-in-place-fast-hd.webm"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+          />
+          <button
+            className="hero-volume"
+            type="button"
+            aria-label={heroMuted ? '영상 소리 켜기' : '영상 소리 끄기'}
+            aria-pressed={!heroMuted}
+            onClick={toggleHeroSound}
+          >
+            <span aria-hidden="true">{heroMuted ? '🔇' : '🔊'}</span>
+          </button>
         </section>
 
-        <section className={`screen benefits ${active === 1 ? 'is-active' : ''}`} data-screen="1">
-          <div className="section-inner benefits-inner">
-            <div className="benefits-heading enter-up"><h2>왜 땡겨요?</h2><p>나도 살고, 너도 사니까</p></div>
-            <div className="benefit-scroller" aria-label="서비스 혜택">
-              <div className="benefit-grid">
-                {benefits.map(([label, icon], index) => (
-                  <article className={`benefit-card enter-card icon-${icon}`} style={{ '--delay': `${0.08 * index}s` } as React.CSSProperties} key={label}>
-                    <h3>{label}</h3><div className="benefit-icon" aria-hidden="true"><i /><i /><i /></div>
-                  </article>
-                ))}
+        <section id="pain" className={`screen pain ${active === 1 ? 'is-active' : ''}`} data-screen="1">
+          <div className="pain__layout">
+            <div className="pain__copy pain__copy--settlement">
+              <div className={`pain__item ${empathySteps[1] === 0 ? 'is-active' : ''}`} aria-current={empathySteps[1] === 0 ? 'step' : undefined}>
+                <h2>그럴 때 있잖아요.<br />정산서 열어볼 때.</h2>
+              </div>
+              <div className={`pain__item ${empathySteps[1] === 1 ? 'is-active' : ''}`} aria-current={empathySteps[1] === 1 ? 'step' : undefined}>
+                <p>오늘 받은 이 주문,<br />내 통장엔 얼마가 남을까?</p>
+              </div>
+              <div className={`pain__item ${empathySteps[1] === 2 ? 'is-active' : ''}`} aria-current={empathySteps[1] === 2 ? 'step' : undefined}>
+                <p>분명 바빴는데,<br />통장엔 남는 게 없어요.</p>
+              </div>
+            </div>
+            <div className="empathy-visual empathy-visual--settlement" aria-hidden="true">
+              <video
+                className="empathy-visual__media"
+                src="/animations/bora-settlement-comparison-transparent.webm"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+              />
+            </div>
+            {useMobileHeroVideo && (
+              <>
+                <img className="pain__settlement-accent pain__settlement-accent--bankbook" src="/images/settlement/bankbook-icon.svg" alt="" aria-hidden="true" draggable="false" />
+                <img className="pain__settlement-accent pain__settlement-accent--receipt" src="/images/settlement/receipt-icon.svg" alt="" aria-hidden="true" draggable="false" />
+              </>
+            )}
+          </div>
+        </section>
+
+        <section className={`screen pain ${active === 2 ? 'is-active' : ''}`} data-screen="2">
+          <div className="pain__layout">
+            <div className="pain__copy pain__copy--fees">
+              <div className={`pain__item ${empathySteps[2] === 0 ? 'is-active' : ''}`} aria-current={empathySteps[2] === 0 ? 'step' : undefined}>
+                <h2>그럴 때 있잖아요.<br />일은 내가 했는데</h2>
+              </div>
+              <div className={`pain__item ${empathySteps[2] === 1 ? 'is-active' : ''}`} aria-current={empathySteps[2] === 1 ? 'step' : undefined}>
+                <p>수수료에 광고비까지<br />이것저것 떼고 나면</p>
+              </div>
+              <div className={`pain__item ${empathySteps[2] === 2 ? 'is-active' : ''}`} aria-current={empathySteps[2] === 2 ? 'step' : undefined}>
+                <p>돈은 안 남고<br />한숨만 남아요.</p>
+              </div>
+            </div>
+            <div className="empathy-visual empathy-visual--fees" aria-hidden="true">
+              <video
+                className="empathy-visual__media"
+                src="/animations/bora-chef-stew-transparent.webm"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+              />
+            </div>
+            {useMobileHeroVideo && (
+              <>
+                <img className="pain__fees-accent pain__fees-accent--commission" src="/images/fees/fee-deduction-icon.svg" alt="" aria-hidden="true" draggable="false" />
+                <img className="pain__fees-accent pain__fees-accent--advertising" src="/images/fees/ad-cost-icon.svg" alt="" aria-hidden="true" draggable="false" />
+              </>
+            )}
+          </div>
+        </section>
+
+        <section className={`screen pain pain--bridge ${active === 3 ? 'is-active' : ''}`} data-screen="3">
+          <div className="pain__bridge">
+            <h2 className={`pain__bridge-step pain__bridge-heading ${empathySteps[3] === 0 ? 'is-active' : ''}`} aria-current={empathySteps[3] === 0 ? 'step' : undefined}>그래서 생각했어요.</h2>
+            <p className={`pain__bridge-step pain__bridge-line ${empathySteps[3] === 1 ? 'is-active' : ''}`} aria-current={empathySteps[3] === 1 ? 'step' : undefined}>{useMobileHeroVideo ? <>사장님에겐<br />수익이 더 남고,</> : '사장님에겐 수익이 더 남고,'}</p>
+            <p className={`pain__bridge-step pain__bridge-line ${empathySteps[3] === 2 ? 'is-active' : ''}`} aria-current={empathySteps[3] === 2 ? 'step' : undefined}>{useMobileHeroVideo ? <>손님에겐<br />혜택이 더 돌아가는</> : '손님에겐 혜택이 더 돌아가는'}</p>
+            <p className={`pain__bridge-step pain__bridge-line pain__bridge-line--final ${bridgeFinalActive ? 'is-active' : ''}`} aria-current={bridgeFinalActive ? 'step' : undefined}>{useMobileHeroVideo ? <span>이런 배달앱은<br />없을까?</span> : '이런 배달앱은 없을까?'}</p>
+          </div>
+          {useMobileHeroVideo && active === 3 && bridgeFinalActive && (
+            <video className="pain__bridge-rider" src="/animations/bora-rider-in-place-fast-hd.webm" autoPlay loop muted playsInline preload="metadata" aria-hidden="true" />
+          )}
+        </section>
+
+        <section className={`screen owner-benefits ${active === 4 ? 'is-active' : ''}`} data-screen="4">
+          <div className="owner-benefits__inner" aria-label="땡겨요 주문수수료 2%, 광고비 없음, 입점비 없음, 월이용료 없음">
+            <div className="owner-benefits__stage">
+              <div className={`owner-benefits__step-stage${useMobileOwnerBenefitVideo ? ' owner-benefits__step-stage--video' : ''}`}>
+                {useMobileOwnerBenefitVideo ? (
+                  <video
+                    ref={mobileOwnerBenefitVideoRef}
+                    className="owner-benefits__mobile-video"
+                    src={mobileOwnerBenefitVideoSrc}
+                    onEnded={() => {
+                      if (activeRef.current === 4 && useMobileOwnerBenefitVideo) mobileFreeVideoEndedRef.current = true;
+                    }}
+                    playsInline
+                    preload="auto"
+                    controls={false}
+                    loop={false}
+                    disablePictureInPicture
+                    disableRemotePlayback
+                    controlsList="nodownload nofullscreen noremoteplayback"
+                    aria-label="땡겨요 주문수수료 2%, 광고비 없음, 입점비 없음, 월 이용료 없음"
+                  />
+                ) : useMobileHeroVideo ? (
+                  mobileOwnerBenefitSteps.map((src, index) => (
+                    <img
+                      className={index === ownerBenefitStep ? 'is-active' : ''}
+                      src={src}
+                      alt={ownerBenefitStepAlts[index]}
+                      aria-hidden={index !== ownerBenefitStep}
+                      draggable="false"
+                      key={src}
+                    />
+                  ))
+                ) : desktopOwnerBenefitVideoSrc ? (
+                  <video
+                    ref={desktopOwnerBenefitVideoRef}
+                    className="owner-benefits__animation owner-benefits__desktop-video"
+                    src={desktopOwnerBenefitVideoSrc}
+                    onEnded={() => {
+                      if (activeRef.current !== 4 || useMobileHeroVideoRef.current) return;
+                      desktopFreeVideoEndedRef.current = true;
+                      ownerBenefitAutoPlayingRef.current = false;
+                    }}
+                    playsInline
+                    preload="auto"
+                    controls={false}
+                    loop={false}
+                    disablePictureInPicture
+                    disableRemotePlayback
+                    controlsList="nodownload nofullscreen noremoteplayback"
+                    aria-label="땡겨요 주문수수료 2%, 광고비 없음, 입점비 없음, 월 이용료 없음"
+                  />
+                ) : (
+                  <div
+                    className="owner-benefits__animation"
+                    aria-hidden="true"
+                  >
+                    <div ref={ownerBenefitBurstWrapRef} className="owner-benefits__burst-wrap">
+                      <div ref={ownerBenefitBurstFlashRef} className="owner-benefits__burst-flash" />
+                      <div ref={ownerBenefitBurstRingOneRef} className="owner-benefits__burst-ring owner-benefits__burst-ring--one" />
+                      <div ref={ownerBenefitBurstRingTwoRef} className="owner-benefits__burst-ring owner-benefits__burst-ring--two" />
+                      <div ref={ownerBenefitBurstShadowRef} className="owner-benefits__burst-shadow" />
+                      <img
+                        ref={ownerBenefitBurstImageRef}
+                        className="owner-benefits__burst-image"
+                        src={desktopOwnerBenefitArtwork}
+                        alt=""
+                        draggable="false"
+                      />
+                      {ownerBenefitBurstDots.map((dot, index) => (
+                        <span
+                          key={`${dot.color}-${index}`}
+                          ref={(element) => { ownerBenefitBurstDotRefs.current[index] = element; }}
+                          className="owner-benefits__burst-dot"
+                          style={{
+                            width: `${dot.size}px`,
+                            height: `${dot.size}px`,
+                            borderRadius: dot.borderRadius,
+                            background: dot.color,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </section>
 
-        <section className={`screen question ${active === 2 ? 'is-active' : ''}`} data-screen="2">
-          <div className="question-inner">
-            <div className="mascot mascot-a"><i /><i /></div>
-            <p className="question-line line-a">그럴 때 있잖아요.<br />문득 궁금할때</p>
-            <p className="question-line line-b">오늘 먹은 이 배달 음식,<br />사장님께는 얼마가 갈까?</p>
-            <p className="question-line line-c">땡겨요는 사장님께<br />수익이 더 많이 가요.</p>
-            <div className="mascot-stack"><div className="mascot mascot-b"><i /><i /></div><div className="mascot mascot-c"><i /><i /></div></div>
+        <section className={`screen customer-benefits ${active === 5 ? 'is-active' : ''}`} data-screen="5">
+          <div className="section5-benefits" aria-label="소상공인을 위한 상생 배달앱 혜택">
+              <header className="section5-benefits__copy">
+                <h2><span>소상공인을 위한</span> 상생 배달앱</h2>
+                <p>더 좋은 혜택으로 사장님의 오늘이, 더 나은 내일이 됩니다.</p>
+              </header>
+
+              <div className="section5-benefits__visuals">
+              <article className="section5-phone section5-phone--asset section5-phone--local section5-phone--static" aria-label="우리동네 지역화폐 혜택">
+                <div className="section5-phone__screen">
+                  <img src="/images/benefits/02-local-currency-map.png" alt="착한배달앱 땡겨요와 함께하는 우리 지역 지도" draggable="false" />
+                </div>
+              </article>
+
+              <article className="section5-phone section5-phone--asset section5-phone--national section5-phone--static" aria-label="국민 배달앱 땡겨요">
+                <div className="section5-phone__screen">
+                  <img src="/images/benefits/01-national-delivery-app.png" alt="누구나 혜택받는 국민 배달앱 땡겨요" draggable="false" />
+                </div>
+              </article>
+
+              <article className="section5-phone section5-phone--asset section5-phone--rest section5-phone--static" aria-label="전국 휴게소 혜택">
+                <div className="section5-phone__screen">
+                  <img src="/images/benefits/03-rest-area-benefit.png" alt="전국 휴게소 최대 20퍼센트 할인 혜택" draggable="false" />
+                </div>
+              </article>
+
+              <article className="section5-phone section5-phone--asset section5-phone--onnuri section5-phone--static" aria-label="온누리상품권 혜택">
+                <div className="section5-phone__screen">
+                  <img src="/images/benefits/04-onnuri-benefit.png" alt="모바일 온누리상품권 구매 할인 혜택" draggable="false" />
+                </div>
+              </article>
+
+              <article className="section5-phone section5-phone--asset section5-phone--coupon section5-phone--static" aria-label="총 16000원 쿠폰팩">
+                <div className="section5-phone__screen">
+                  <img src="/images/benefits/05-coupon-pack.png" alt="첫주문과 재주문을 위한 총 16000원 쿠폰팩" draggable="false" />
+                </div>
+              </article>
+
+              <article className="section5-phone section5-phone--brand" aria-label="오늘 땡길만한 브랜드 할인">
+                <div className="section5-phone__screen section5-phone__screen--brand">
+                  <video
+                    src="/images/benefits/06-brand-discount.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
+                </div>
+                <img
+                  className="section5-phone__brand-frame"
+                  src="/images/benefits/06-brand-discount-phone-frame.png.png"
+                  alt=""
+                  aria-hidden="true"
+                  draggable="false"
+                />
+              </article>
+              </div>
           </div>
         </section>
 
-        <section className={`screen fair ${active === 3 ? 'is-active' : ''}`} data-screen="3">
-          <div className="section-inner fair-inner">
-            <div className="fair-title enter-up"><p>광고비없이</p><h2>2% 수수료로 주문받아요.</h2></div>
-            <div className="fair-stage">
-              <article className="fair-panel panel-owner"><span className="mini-app">동네</span><h3><em>사장님은</em>단골고객님께<br />보답해요</h3><p>고마운 고객님의 마음을<br />쿠폰으로 사로잡아요</p><div className="blob-person owner"><i /><i /><i /></div></article>
-              <article className="fair-panel panel-customer"><span className="mini-app">쿠폰</span><h3><em>고객님은</em>단골혜택<br />기대해봐요</h3><p>단골고객님, 사장님의<br />쿠폰 선물을 받으세요</p><div className="blob-person customer"><i /><i /><i /></div></article>
+        <section className={`screen customer-benefits manager-support ${active === 6 ? 'is-active' : ''}`} data-screen="6">
+          <div className="manager-support__inner">
+              <header className="manager-support__header">
+                <h2>사장님은 <strong>장사에만</strong> 집중하세요.</h2>
+                <p>{useMobileHeroVideo ? '간단한 매장 정보만 남겨주시면 끝~~' : '복잡한 입점 절차부터 장사가 더 잘되도록 돕는 맞춤 컨설팅까지 지원합니다.'}</p>
+              </header>
+              <ol className="manager-support__steps" aria-label="입점 및 운영 지원 절차">
+                <li className="manager-support__card">
+                  <span className="manager-support__number">01</span>
+                  <span className="manager-support__illustration" aria-hidden="true">
+                    <svg viewBox="0 0 120 96">
+                      <path className="illustration__soft" d="M74 14h27a8 8 0 0 1 8 8v18a8 8 0 0 1-8 8h-7l-8 7v-7H74a8 8 0 0 1-8-8V22a8 8 0 0 1 8-8Z" />
+                      <rect className="illustration__paper" x="18" y="5" width="67" height="86" rx="12" />
+                      <path className="illustration__ink" d="M39 14h25M29 28h44M29 44h44M29 60h27" />
+                      <circle className="illustration__main-soft" cx="33" cy="76" r="8" />
+                      <path className="illustration__main" d="m29 76 3 3 6-7M45 76h19" />
+                      <circle className="illustration__main-fill" cx="91" cy="66" r="14" />
+                      <path className="illustration__light" d="M84 66h13m-5-5 5 5-5 5" />
+                    </svg>
+                  </span>
+                  <h3>입점 상담 신청</h3><p>간단한 매장 정보만 남겨주시면 끝!</p>
+                </li>
+                <li className="manager-support__card">
+                  <span className="manager-support__number">02</span>
+                  <span className="manager-support__illustration" aria-hidden="true">
+                    <svg viewBox="0 0 120 96">
+                      <path className="illustration__soft" d="M10 20h100v66H10z" />
+                      <circle className="illustration__paper" cx="37" cy="35" r="13" />
+                      <path className="illustration__paper" d="M14 80c3-20 11-30 23-30s20 10 23 30Z" />
+                      <circle className="illustration__paper" cx="83" cy="31" r="15" />
+                      <path className="illustration__paper" d="M58 80c4-22 12-34 25-34s22 12 25 34Z" />
+                      <path className="illustration__main" d="M50 39c8-8 15-9 23-6M68 28l5 5-6 4" />
+                      <rect className="illustration__main-soft" x="73" y="59" width="20" height="13" rx="4" />
+                      <path className="illustration__ink" d="M78 65h10" />
+                      <circle className="illustration__main-fill" cx="103" cy="21" r="12" />
+                      <path className="illustration__light" d="m97 21 4 4 8-9" />
+                    </svg>
+                  </span>
+                  <h3>전담 매니저 배치</h3><p>상담 내용을 바탕으로 전담 매니저가 배정됩니다.</p>
+                </li>
+                <li className="manager-support__card">
+                  <span className="manager-support__number">03</span>
+                  <span className="manager-support__illustration" aria-hidden="true">
+                    <svg viewBox="0 0 120 96">
+                      <path className="illustration__paper" d="M23 4h59l15 15v58H23Z" />
+                      <path className="illustration__soft" d="M82 4v16h15" />
+                      <circle className="illustration__main-fill" cx="39" cy="31" r="8" />
+                      <path className="illustration__light" d="m35 31 3 3 5-6" />
+                      <path className="illustration__ink" d="M53 31h30" />
+                      <circle className="illustration__main-fill" cx="39" cy="51" r="8" />
+                      <path className="illustration__light" d="m35 51 3 3 5-6" />
+                      <path className="illustration__ink" d="M53 51h30" />
+                      <circle className="illustration__main-soft" cx="39" cy="69" r="8" />
+                      <path className="illustration__ink" d="M53 69h22" />
+                      <circle className="illustration__main-soft" cx="29" cy="87" r="8" />
+                      <circle className="illustration__main-soft" cx="60" cy="87" r="8" />
+                      <circle className="illustration__main-fill" cx="91" cy="87" r="8" />
+                      <path className="illustration__ink" d="M37 87h15M68 87h15M27 84v6M57 84h5l-5 6M88 84h6l-6 6h6" />
+                    </svg>
+                  </span>
+                  <h3>입점 진행</h3><p>필요한 절차를 안내하고 입점 과정을 함께 진행합니다.</p>
+                </li>
+                <li className="manager-support__card">
+                  <span className="manager-support__number">04</span>
+                  <span className="manager-support__illustration" aria-hidden="true">
+                    <svg viewBox="0 0 120 96">
+                      <path className="illustration__soft" d="m11 42 12-27h60l12 27" />
+                      <path className="illustration__main-fill" d="M8 42h90v14H8z" />
+                      <path className="illustration__paper" d="M18 56h70v35H18z" />
+                      <path className="illustration__ink" d="M31 91V69h18v22M61 75h14" />
+                      <path className="illustration__main-soft" d="m76 12 28 5-4 22-28-5z" />
+                      <circle className="illustration__main-fill" cx="81" cy="22" r="3" />
+                      <path className="illustration__ink" d="M88 24h9" />
+                      <path className="illustration__main" d="M65 70c13-3 22-11 31-24M89 47l7-1-1 7" />
+                    </svg>
+                  </span>
+                  <h3>성장 컨설팅</h3><p>오픈 이후 매장 상황에 맞는 프로모션과 매출 활성화 방향을 제안합니다.</p>
+                </li>
+              </ol>
+              <p className="manager-support__closing"><span className="manager-support__closing-orange">상담부터 입점 이후까지</span> <span className="manager-support__closing-blue">전담 매니저</span><span className="manager-support__closing-charcoal">가 함께합니다.</span></p>
+              <img className="section6-mascot section6-mascot--left" src="/images/section6/mascot-left-consulting.png.png" alt="입점 상담을 안내하는 땡겨요 마스코트" draggable="false" />
+              <img className="section6-mascot section6-mascot--right" src="/images/section6/mascot-right-growth.png.png" alt="성장 컨설팅을 안내하는 땡겨요 마스코트" draggable="false" />
+          </div>
+        </section>
+
+        <section className={`screen faq ${active === 7 ? 'is-active' : ''}`} data-screen="7" aria-labelledby="faq-heading">
+          <div className="faq__inner">
+            <header className="faq__header">
+              <h2 id="faq-heading"><span className="faq__heading-orange">수수료는?</span> <span className="faq__heading-blue">정산은?</span> <span className="faq__heading-charcoal">주문은?</span></h2>
+              <p>사장님이 입점 전에 가장 궁금해하는 내용을 모았습니다.</p>
+            </header>
+            <div className="faq__tabs" role="tablist" aria-label="FAQ 카테고리">
+              {faqCategories.map((category) => {
+                const selected = category.id === faqCategory;
+                return (
+                  <button
+                    id={`faq-tab-${category.id}`}
+                    className={`faq__tab ${selected ? 'is-selected' : ''}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    aria-controls="faq-panel"
+                    tabIndex={selected ? 0 : -1}
+                    key={category.id}
+                    onClick={() => {
+                      setFaqCategory(category.id);
+                      setOpenFaqId(category.items[0]?.id ?? null);
+                      faqScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    {category.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="faq__scroll-region" ref={useMobileHeroVideo ? undefined : faqScrollRef}>
+              <div
+                id="faq-panel"
+                className="faq__panel"
+                role="tabpanel"
+                aria-labelledby={`faq-tab-${selectedFaqCategory.id}`}
+                ref={useMobileHeroVideo ? faqScrollRef : undefined}
+              >
+                <div className="faq-accordion">
+                  {displayedFaqItems.map(renderFaqItem)}
+                </div>
+              </div>
+              {!useMobileHeroVideo && (
+                <div className="faq__common" aria-label="공통 입점 상담 FAQ">
+                  <div className="faq-accordion">
+                    {commonFaqs.map(renderFaqItem)}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
 
-        <section className={`screen culture ${active === 4 ? 'is-active' : ''}`} data-screen="4">
-          <div className="culture-scene" aria-hidden="true"><i className="shirt" /><i className="bag" /><i className="handle" /></div>
-          <div className="culture-copy enter-up"><h2>사장님이 인심좋게<br />나눌 수 있는 배달</h2><p>너도 살고, 나도 사는<br />배달문화를 만들어 갑니다.</p></div>
+        <section ref={consultationPageRef} className={`screen consultation ${active === 8 ? 'is-active' : ''}`} data-screen="8">
+          <>
+            <div className="consultation__inner">
+              <header className="consultation__header">
+                <h2>이제, <strong>사장님 매장</strong> 이야기를 들려주세요.</h2>
+                <p>간단한 정보만 남겨주시면 전담 매니저가 확인 후 연락드립니다.</p>
+              </header>
+              <div className="consultation__layout">
+                <aside className="consultation__visual" aria-label="입점 상담을 돕는 매장 안내">
+                  <svg viewBox="0 0 240 360" role="img" aria-label="매장 상담을 준비하는 음식점 사장님 일러스트">
+                    <ellipse className="consultation__visual-ground" cx="120" cy="333" rx="103" ry="13" />
+                    <circle className="consultation__visual-backdrop" cx="120" cy="176" r="104" />
+                    <path className="consultation__visual-store" d="M42 148h156v128a18 18 0 0 1-18 18H60a18 18 0 0 1-18-18V148Z" />
+                    <path className="consultation__visual-roof" d="M30 126h180l-20-54H50l-20 54Z" />
+                    <rect className="consultation__visual-sign" x="77" y="88" width="86" height="24" rx="12" />
+                    <path className="consultation__visual-sign-mark" d="M99 100h42M108 94v12M132 94v12" />
+                    <path className="consultation__visual-awning" d="M30 126h180v24c0 13-10 23-23 23-12 0-22-9-23-21-2 12-11 21-23 21s-22-9-23-21c-2 12-11 21-23 21s-22-9-23-21c-2 12-11 21-23 21-13 0-23-10-23-23v-24Z" />
+                    <rect className="consultation__visual-window" x="126" y="194" width="50" height="58" rx="8" />
+                    <rect className="consultation__visual-door" x="62" y="190" width="42" height="104" rx="9" />
+                    <circle className="consultation__visual-head" cx="82" cy="250" r="24" />
+                    <path className="consultation__visual-hair" d="M59 246c1-17 10-27 24-27 12 0 21 7 24 19-8-1-15-5-20-11-6 9-15 15-28 19Z" />
+                    <path className="consultation__visual-face" d="M72 252h1M91 252h1M76 263c4 3 9 3 13 0" />
+                    <path className="consultation__visual-headset" d="M58 250c0-16 10-27 24-27s24 11 24 27v8h-9M58 250v10h8" />
+                    <path className="consultation__visual-body" d="M42 330c2-40 17-62 40-62s39 22 41 62H42Z" />
+                    <path className="consultation__visual-apron" d="M65 280h34l8 50H57l8-50Z" />
+                    <rect className="consultation__visual-note" x="102" y="246" width="72" height="86" rx="12" />
+                    <path className="consultation__visual-check" d="m119 277 11 11 25-29M119 306h36" />
+                    <path className="consultation__visual-bubble" d="M143 31h64a15 15 0 0 1 15 15v35a15 15 0 0 1-15 15h-24l-16 15 2-15h-26a15 15 0 0 1-15-15V46a15 15 0 0 1 15-15Z" />
+                    <path className="consultation__visual-bubble-check" d="m154 63 10 10 21-23" />
+                  </svg>
+                </aside>
+
+                <form
+                  className="consultation-form"
+                  onSubmit={handleConsultationSubmit}
+                >
+                <div className="consultation-form__fields">
+                  <label className="consultation-form__field" htmlFor="consultation-store-name">
+                    <span>매장명(상호)</span>
+                    <input id="consultation-store-name" name="storeName" type="text" placeholder="매장명을 입력해주세요." autoComplete="organization" required />
+                  </label>
+                  <label className="consultation-form__field" htmlFor="consultation-phone">
+                    <span>휴대폰 번호</span>
+                    <input id="consultation-phone" name="phone" type="tel" inputMode="tel" placeholder="010-0000-0000" autoComplete="tel" required />
+                  </label>
+                  <label className="consultation-form__field" htmlFor="consultation-address">
+                    <span>매장 주소</span>
+                    <input id="consultation-address" name="storeAddress" type="text" placeholder="예: 서울특별시 중구 세종대로 67" autoComplete="street-address" required />
+                  </label>
+                </div>
+                <div
+                  className={`consultation-form__apps-wrap consultation-form__full ${deliveryAppsError ? 'is-error' : ''} ${deliveryAppsAlerting ? 'is-alerting' : ''}`}
+                  onAnimationEnd={(event) => {
+                    if (event.animationName === 'consultation-apps-error-pulse') {
+                      setDeliveryAppsAlerting(false);
+                    }
+                  }}
+                >
+                <fieldset
+                  className="consultation-form__apps"
+                  aria-invalid={deliveryAppsError}
+                  aria-describedby={deliveryAppsError ? 'consultation-delivery-apps-error' : undefined}
+                >
+                  <legend>현재 이용 중인 배달앱 <small>복수 선택 가능</small></legend>
+                  <div className="consultation-form__chips">
+                    {['배민', '쿠팡이츠', '요기요', '땡겨요', '배달앱 미사용', '기타'].map((appName) => (
+                      <label key={appName}>
+                        <input
+                          type="checkbox"
+                          name="deliveryApps"
+                          value={appName}
+                          checked={selectedDeliveryApps.includes(appName)}
+                          onChange={() => {
+                            setDeliveryAppsError(false);
+                            setDeliveryAppsAlerting(false);
+                            setSelectedDeliveryApps((selectedApps) => {
+                              if (appName === '배달앱 미사용') {
+                                return selectedApps.includes(appName) ? [] : [appName];
+                              }
+
+                              const selectableApps = selectedApps.filter((selectedApp) => selectedApp !== '배달앱 미사용');
+                              return selectableApps.includes(appName)
+                                ? selectableApps.filter((selectedApp) => selectedApp !== appName)
+                                : [...selectableApps, appName];
+                            });
+                          }}
+                        />
+                        <span>{appName}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {deliveryAppsError && (
+                    <p id="consultation-delivery-apps-error" className="consultation-form__apps-error" role="alert">
+                      현재 이용 중인 배달앱을 선택해주세요.
+                    </p>
+                  )}
+                </fieldset>
+                </div>
+                <div className="consultation-form__privacy-row consultation-form__full">
+                  <label className="consultation-form__privacy" htmlFor="consultation-privacy">
+                    <input id="consultation-privacy" name="privacyConsent" type="checkbox" required />
+                    <span>개인정보 수집 및 이용에 동의합니다. <b>[필수]</b></span>
+                  </label>
+                  <button
+                    className="consultation-form__privacy-toggle"
+                    type="button"
+                    aria-expanded={privacyDetailsOpen}
+                    onClick={() => setPrivacyDetailsOpen((isOpen) => !isOpen)}
+                  >
+                    <span aria-hidden="true">{privacyDetailsOpen ? '▾' : '▸'}</span>
+                    {privacyDetailsOpen ? '내용닫기' : '내용보기'}
+                  </button>
+                  {privacyDetailsOpen && (
+                    <dl className="consultation-form__privacy-details">
+                      <div>
+                        <dt>[수집·이용 목적]</dt>
+                        <dd>땡겨요 입점 상담 신청 접수, 상담 연락, 담당 매니저 배정, 입점 지원, 입점 후 매장 관리·사후관리 및 운영 컨설팅</dd>
+                      </div>
+                      <div>
+                        <dt>[수집 항목]</dt>
+                        <dd>매장명(상호), 휴대폰 번호, 매장 주소, 현재 이용 중인 배달앱</dd>
+                      </div>
+                      <div>
+                        <dt>[보유·이용 기간]</dt>
+                        <dd>상담, 입점 및 관리가 종료될 때까지 보유하며, 종료일로부터 6개월 후 파기합니다.</dd>
+                      </div>
+                      <div>
+                        <dt>[동의 거부 안내]</dt>
+                        <dd>개인정보 수집 및 이용에 동의하지 않을 권리가 있습니다. 다만 동의를 거부할 경우 무료 입점 상담 신청이 제한될 수 있습니다.</dd>
+                      </div>
+                    </dl>
+                  )}
+                </div>
+                <button className="consultation-form__submit consultation-form__full" type="submit">무료 입점 상담 신청</button>
+                <p className="consultation-form__phone consultation-form__full">전화 상담이 편하신가요? <a href="tel:1555-1984">1555-1984</a></p>
+                </form>
+
+                <aside className="consultation__trust" aria-label="땡겨요 입점 상담 혜택">
+                  <div className="consultation__trust-card">
+                    <span className="consultation__trust-icon" aria-hidden="true">
+                      <svg viewBox="0 0 32 32"><path d="M6 7h20v14H14l-6 5v-5H6V7Z" /><path d="m11 14 3 3 7-7" /></svg>
+                    </span>
+                    <strong>무료 상담</strong>
+                  </div>
+                  <div className="consultation__trust-card">
+                    <span className="consultation__trust-icon consultation__trust-icon--orange" aria-hidden="true">
+                      <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" /><text x="16" y="19">2%</text></svg>
+                    </span>
+                    <strong>주문수수료 2%</strong>
+                  </div>
+                  <div className="consultation__trust-card">
+                    <span className="consultation__trust-icon" aria-hidden="true">
+                      <svg viewBox="0 0 32 32"><circle cx="16" cy="10" r="5" /><path d="M7 27c1-7 4-11 9-11s8 4 9 11M6 11v7h4M26 11v7h-4" /></svg>
+                    </span>
+                    <strong>전담 매니저 지원</strong>
+                  </div>
+                  <div className="consultation__trust-card consultation__trust-card--consulting">
+                    <span className="consultation__trust-icon consultation__trust-icon--orange" aria-hidden="true">
+                      <svg viewBox="0 0 32 32"><rect x="7" y="5" width="18" height="22" rx="3" /><path d="M12 21v-4M16 21v-7M20 21v-10M12 9h8" /></svg>
+                    </span>
+                    <strong>맞춤 컨설팅 제공</strong>
+                  </div>
+                </aside>
+              </div>
+            </div>
+            <footer className="consultation-footer">
+              <div className="consultation-footer__inner">
+                <div className="consultation-footer__top">
+                  <div className="consultation-footer__brand">
+                    <p><span>운영자 더잘함M&amp;F</span><i aria-hidden="true">|</i><span>땡겨요 입점 상담 운영</span></p>
+                    <p><span>대표자 남도현</span><i aria-hidden="true">|</i><span>사업자등록번호 314-09-25617</span></p>
+                    <p><span>대전광역시 유성구 대학로 28</span><i aria-hidden="true">|</i><a href="mailto:ndh4123@naver.com">ndh4123@naver.com</a></p>
+                  </div>
+                  <div className="consultation-footer__links">
+                    <button type="button" aria-label="개인정보처리방침 준비 중">개인정보처리방침</button>
+                    <a href="tel:1555-1984">입점 상담 <strong>1555-1984</strong></a>
+                  </div>
+                </div>
+                <div className="consultation-footer__bottom">
+                  <p>
+                    <span>본 사이트는 땡겨요 본사 또는 신한은행이 직접 운영하는 사이트가 아닙니다.</span>
+                    <span>땡겨요 총판 디와이파트너스를 통해 입점 상담을 제공합니다.</span>
+                  </p>
+                  <small>© 2026 더잘함M&amp;F. All rights reserved.</small>
+                </div>
+              </div>
+            </footer>
+          </>
         </section>
 
-        <section className={`screen feature feature-review ${active === 5 ? 'is-active' : ''}`} data-screen="5">
-          <div className="section-inner feature-inner">
-            <CopyBlock eyebrow="잘 쓴 리뷰로" title="돈 버는 중." body={<>배달 일상 기록하고,<br />맛스타가 되어 포인트까지 벌어요.</>} />
-            <PhoneMock mode="review" className="feature-phone" />
-          </div>
-        </section>
-
-        <section className={`screen feature feature-social ${active === 6 ? 'is-active' : ''}`} data-screen="6">
-          <div className="decor-dot dot-a" /><div className="decor-dot dot-b" /><div className="decor-dot dot-c">↘<small>375</small></div>
-          <div className="section-inner feature-inner">
-            <CopyBlock eyebrow="밥 때 되면" title="인스타 하듯." body={<>고퀄 리뷰 넘겨보고,<br />리뷰 통한 주문으로 리워드까지 얻어요.</>} />
-            <PhoneMock mode="social" className="feature-phone" />
-          </div>
-        </section>
-
-        <section className={`screen feature feature-recommend ${active === 7 ? 'is-active' : ''}`} data-screen="7">
-          <div className="section-inner feature-inner reverse">
-            <PhoneMock mode="recommend" className="feature-phone" />
-            <CopyBlock eyebrow="메뉴 선택을" title="단숨에." body={<>광고없이, 취향에 맞게,<br />당신이 진짜 원하는 메뉴를 추천해요</>} />
-          </div>
-        </section>
-
-        <section className={`screen feature feature-voucher ${active === 8 ? 'is-active' : ''}`} data-screen="8">
-          <div className="section-inner feature-inner reverse">
-            <PhoneMock mode="voucher" className="feature-phone" />
-            <CopyBlock eyebrow="서울사랑상품권" title="사용/구입을 한번에." body={<>서울사랑상품권 사용은 물론 구입까지,<br />10% 할인을 매끄럽게 경험해요</>} />
-          </div>
-        </section>
-
-        <section className={`screen nationwide ${active === 9 ? 'is-active' : ''}`} data-screen="9">
-          <div className="nationwide-copy enter-up"><h2><em>땡겨요를</em><span>전국에서 만나요!</span></h2><p>이제는 전국 어디서든, 맛있는 음식을 땡겨요로 주문해요</p></div>
-          <div className="map-placeholder" aria-label="전국 서비스 지역 지도 placeholder"><i /><i /><i /><i /><i /><i /><i /></div>
-        </section>
-
-        <section className={`screen closing ${active === 10 ? 'is-active' : ''}`} data-screen="10">
-          <div className="closing-visual">
-            <div className="courier" aria-hidden="true"><i className="courier-head" /><i className="courier-body" /><i className="courier-bag">LOCAL</i></div>
-            <div className="closing-copy enter-up"><h2>너도 살고 나도 사는<br />우리동네 배달앱, 땡겨요</h2><p>일상의 땡기는 순간, 땡겨요와 함께 하세요.</p></div>
-          </div>
-          <footer className="footer">
-            <div className="footer-inner"><div className="footer-logo">땡겨요</div><div className="footer-content"><ul><li>이용약관</li><li>땡겨요페이약관</li><li>땡겨요 위치기반 서비스 이용약관</li><li>전자금융거래약관</li><li><strong>개인정보처리방침</strong></li><li>신용정보활용체제</li><li>개인위치정보 처리방침</li></ul><button type="button">땡겨요 사업자정보⌄</button></div></div>
-          </footer>
-        </section>
       </main>
     </>
   );

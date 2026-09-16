@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" fill="none">
+  <title>통장과 정산금</title>
+  <g stroke="#252D45" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="25" width="94" height="65" rx="9" fill="#F15A24"/>
+    <path d="M22 26v63"/>
+    <rect x="33" y="37" width="56" height="31" rx="6" fill="#FFFFFF"/>
+    <path d="m45 45 4 16 7-13 7 13 4-16M42 51h29M42 56h29" stroke-width="2.8"/>
+    <path d="M34 78h34" stroke="#FFFFFF"/>
+    <circle cx="88" cy="86" r="15" fill="#FFD7BC"/>
+    <path d="m80 80 3 11 5-9 5 9 3-11M78 84h20" stroke-width="2.5"/>
+  </g>
+</svg>

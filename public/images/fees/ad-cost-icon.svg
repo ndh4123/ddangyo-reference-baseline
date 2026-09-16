@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" fill="none">
+  <title>광고에 지출되는 비용</title>
+  <g stroke="#252D45" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m29 60 7 25h15l-8-25" fill="#FFFFFF"/>
+    <path d="M12 40h29l36-15v47L41 59H12Z" fill="#FFFFFF"/>
+    <path d="M12 40h19v19H12Z" fill="#F15A24"/>
+    <path d="M77 25v47" stroke="#F15A24" stroke-width="5"/>
+    <path d="m88 35 10-5M90 48h12M88 61l10 5" stroke="#FFFFFF"/>
+    <path d="M47 87h17m-7-7 7 7-7 7" stroke="#F15A24" stroke-width="5"/>
+    <circle cx="85" cy="84" r="17" fill="#F15A24"/>
+    <path d="m76 77 3 14 6-11 6 11 3-14M74 82h22M74 86h22" stroke-width="2.5"/>
+  </g>
+  <text x="39" y="20" text-anchor="middle" fill="#FFFFFF" font-family="Arial, 'Malgun Gothic', sans-serif" font-size="17" font-weight="800">광고비</text>
+  <text x="53" y="55" text-anchor="middle" fill="#252D45" font-family="Arial, sans-serif" font-size="20" font-weight="800">AD</text>
+</svg>

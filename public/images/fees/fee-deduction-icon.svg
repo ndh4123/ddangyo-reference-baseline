@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" fill="none">
+  <title>정산서에서 빠져나가는 수수료</title>
+  <g stroke="#252D45" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 12h66v84l-11-6-11 6-11-6-11 6-11-6-11 6Z" fill="#FFFFFF"/>
+    <path d="M22 44h42" stroke="#F15A24"/>
+    <path d="M22 56h23M22 67h17"/>
+    <path d="M47 67h38v9m-7-7 7 7 7-7" stroke="#F15A24" stroke-width="5"/>
+    <circle cx="85" cy="84" r="17" fill="#F15A24"/>
+    <path d="m76 77 3 14 6-11 6 11 3-14M74 82h22M74 86h22" stroke-width="2.5"/>
+    <path d="M23 81h15" stroke="#F15A24" stroke-width="5"/>
+  </g>
+  <text x="43" y="34" text-anchor="middle" fill="#252D45" font-family="Arial, 'Malgun Gothic', sans-serif" font-size="17" font-weight="800">수수료</text>
+</svg>
