@@ -228,6 +228,7 @@ h1, h2, h3, p { margin: 0; }
 .manager-support__number { display:block; color:rgba(240,74,29,.72); font-size:55px; font-weight:900; line-height:1; letter-spacing:-2px; transition:color .32s ease-out; }
 .manager-support__illustration { display:grid; width:100%; height:125px; margin-top:8px; place-items:center; transform:scale(1); transform-origin:center; transition:transform .32s ease-out; }
 .manager-support__illustration svg { display:block; width:156px; height:125px; overflow:visible; }
+.manager-support__illustration-mobile { display:none !important; }
 .manager-support__illustration .illustration__ink,.manager-support__illustration .illustration__main,.manager-support__illustration .illustration__light { fill:none; stroke-linecap:round; stroke-linejoin:round; }
 .manager-support__illustration .illustration__ink { stroke:#343947; stroke-width:3; }
 .manager-support__illustration .illustration__main { stroke:#f15a24; stroke-width:3.5; }
@@ -641,36 +642,49 @@ h1, h2, h3, p { margin: 0; }
   /* Section 5: desktop-final assets, mobile-only composition. */
   .section5-benefits { top:64px; bottom:0; width:100%; padding:18px 14px 78px; display:flex; min-height:0; flex-direction:column; overflow:hidden; }
   .section5-benefits__copy { position:static; width:100%; flex:0 0 auto; text-align:center; }
-  .section5-benefits__copy h2 { font-size:27px; line-height:1.16; letter-spacing:-1.5px; white-space:normal; }
-  .section5-benefits__copy h2 span { white-space:normal; }
-  .section5-benefits__copy p { margin-top:8px; font-size:13.5px; line-height:1.42; letter-spacing:-.45px; white-space:normal; }
-  .section5-benefits__visuals { position:static; width:calc(100% + 12px); min-height:0; margin:8px -6px 0; display:grid; flex:1 1 auto; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:minmax(0,1.2fr) repeat(2,minmax(0,1fr)); gap:8px; align-items:stretch; transform:none; }
-  .section5-benefits__visuals .section5-phone { position:relative; inset:auto; width:100%; height:100%; min-width:0; min-height:0; display:grid; place-items:center; }
-  .section5-phone--national { grid-column:1; grid-row:1; }
-  .section5-benefits__visuals .section5-phone--brand { grid-column:2; grid-row:1; width:auto; max-width:100%; aspect-ratio:.57; justify-self:center; }
-  .section5-phone--local { grid-column:1; grid-row:2; }
-  .section5-phone--onnuri { grid-column:2; grid-row:2; }
-  .section5-phone--coupon { grid-column:1; grid-row:3; }
-  .section5-phone--rest { grid-column:2; grid-row:3; }
-  .section5-phone--asset .section5-phone__screen { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
-  .section5-phone--asset .section5-phone__screen img { width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; }
-  .section5-phone--national .section5-phone__screen img { max-width:350px; }
+  .section5-benefits__copy h2 { font-size:31.5px; line-height:1.289; letter-spacing:-1.95px; white-space:nowrap; transform:scaleX(.93); transform-origin:center; }
+  .section5-benefits__copy h2 span { white-space:nowrap; }
+  .section5-benefits__copy p { margin-top:8px; font-size:15.75px; line-height:1.578; letter-spacing:-.58px; white-space:nowrap; transform:scaleX(.9); transform-origin:center; }
+  .section5-benefits__visuals { position:relative; width:100%; height:560px; min-height:0; margin:8px 0 0; display:block; flex:0 0 560px; transform:none; }
+  .section5-benefits__visuals .section5-phone { position:absolute; right:auto; bottom:auto; min-width:0; min-height:0; height:auto; }
+  .section5-phone--national { z-index:4; top:-33.26px; left:-12.65px; width:283.5px; transform:none; }
+  .section5-benefits__visuals .section5-phone--brand { z-index:5; top:11.14px; right:-6.65px; left:auto; width:193.5px; max-width:none; aspect-ratio:.57; }
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--onnuri,
+  .section5-benefits__visuals .section5-phone--coupon { z-index:6; width:33.3333%; height:220.79px; display:block; transform:none; }
+  .section5-benefits__visuals .section5-phone--local { top:390px; left:0; }
+  .section5-benefits__visuals .section5-phone--onnuri { top:378px; right:auto; left:33.3333%; }
+  .section5-benefits__visuals .section5-phone--coupon { top:390px; right:auto; left:66.6667%; }
+  .section5-benefits__visuals .section5-phone--rest { display:none; }
+  .section5-phone--asset .section5-phone__screen { width:100%; height:auto; display:block; }
+  .section5-phone--asset .section5-phone__screen img { width:100%; height:auto; max-width:100%; object-fit:contain; }
+  .section5-benefits__visuals .section5-phone--local .section5-phone__screen,
+  .section5-benefits__visuals .section5-phone--onnuri .section5-phone__screen,
+  .section5-benefits__visuals .section5-phone--coupon .section5-phone__screen { position:absolute; top:0; right:0; left:0; width:100%; height:220.79px; display:flex; align-items:flex-end; justify-content:center; }
+  .section5-benefits__visuals .section5-phone--local .section5-phone__screen img,
+  .section5-benefits__visuals .section5-phone--onnuri .section5-phone__screen img,
+  .section5-benefits__visuals .section5-phone--coupon .section5-phone__screen img { width:auto; height:220.79px; max-width:none; max-height:220.79px; object-fit:contain; }
   .section5-phone--brand .section5-phone__screen { top:5.4%; right:14%; bottom:5.8%; left:14%; width:auto; height:auto; }
 
   /* Section 6: one compact vertical column without changing screen scrolling. */
-  .manager-support__inner { width:calc(100% - 24px); height:100%; padding:76px 0 76px; justify-content:flex-start; }
+  .manager-support__inner { width:calc(100% - 24px); height:100%; padding:88px 0 99px; justify-content:flex-start; }
   .manager-support__header { flex:0 0 auto; transform:none; }
   .manager-support__header h2 { font-size:28px; line-height:1.16; letter-spacing:-1.6px; white-space:nowrap; }
   .manager-support__header h2 strong { font-size:1em; line-height:inherit; vertical-align:baseline; }
   .manager-support__header p { margin-top:7px; font-size:14px; line-height:1.4; letter-spacing:-.5px; white-space:normal; }
-  .manager-support__steps { min-height:0; margin:13px 0 0; display:grid; flex:1 1 auto; grid-template-columns:1fr; grid-template-rows:repeat(4,minmax(0,1fr)); gap:8px; }
-  .manager-support__card { min-height:0; padding:9px 12px; display:grid; grid-template-columns:48px minmax(0,1fr); grid-template-rows:auto 1fr; align-items:center; gap:5px 10px; border-radius:17px; }
-  .manager-support__card:not(:last-child)::after { display:none; }
-  .manager-support__number { grid-column:1; grid-row:1; align-self:center; font-size:27px; letter-spacing:-1px; }
-  .manager-support__card h3 { grid-column:2; grid-row:1; align-self:center; margin:0; font-size:17px; line-height:1.22; letter-spacing:-.7px; }
-  .manager-support__illustration { grid-column:1; grid-row:2; width:48px; height:48px; margin:0; }
-  .manager-support__illustration svg { width:48px; height:48px; }
-  .manager-support__card p { grid-column:2; grid-row:2; align-self:center; margin:0; font-size:12.5px; line-height:1.35; letter-spacing:-.25px; }
+  .manager-support__steps { min-height:0; margin:13px 0 0; display:grid; flex:1 1 auto; grid-template-columns:1fr; grid-template-rows:repeat(4,120px); container-type:size; align-content:space-between; gap:10px; }
+  .manager-support__card { min-height:0; padding:5px 10px 7px; display:grid; grid-template-columns:44px minmax(0,1fr) 68px; grid-template-rows:34px 1fr; align-items:center; gap:4px 8px; overflow:visible; border:1px solid rgba(241,90,36,.27); border-radius:21px; background:#fff; box-shadow:0 7px 18px rgba(92,62,54,.075); }
+  .manager-support__card::before { content:""; position:absolute; z-index:0; top:0; right:0; left:0; height:40px; border-bottom:1px solid rgba(241,90,36,.18); border-radius:20px 20px 10px 10px; background:#5b362d; pointer-events:none; }
+  .manager-support__card:not(:last-child)::after { content:""; position:absolute; z-index:3; top:calc(100% + 1px + (100cqh - 480px) / 6); right:auto; left:50%; width:clamp(1px,calc((100cqh - 480px) / 3 - 10px),24px); height:clamp(1px,calc((100cqh - 480px) / 3 - 10px),24px); border-radius:50%; background:#f15a24 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/55% 40% no-repeat; box-shadow:0 0 0 2px #fff4f1; transform:translate(-50%,-50%); pointer-events:none; }
+  .manager-support__number { position:relative; z-index:1; grid-column:1; grid-row:1; width:32px; height:26px; display:grid; place-items:center; justify-self:center; align-self:center; border-radius:9px; background:#f15a24; color:#fff; font-size:16px; font-weight:900; line-height:1; letter-spacing:-.4px; }
+  .manager-support__card h3 { position:relative; z-index:1; grid-column:2 / 4; grid-row:1; align-self:center; margin:0; padding-right:72px; color:#fff; font-size:21px; font-weight:850; line-height:1.18; letter-spacing:-.8px; }
+  .manager-support__illustration { position:absolute; z-index:2; top:40px; right:10px; width:69.44px; height:69.44px; margin:0; border:2px solid #f47735; border-radius:20px; background:linear-gradient(135deg,#fff2b8 0%,#ffd1a8 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 4px 10px rgba(241,90,36,.18); transform:translateY(-50%); }
+  .manager-support__illustration svg { width:57.2px; height:57.2px; }
+  .manager-support__illustration .manager-support__illustration-desktop { display:none; }
+  .manager-support__illustration .manager-support__illustration-mobile { display:block !important; }
+  .manager-support__card p { position:absolute; z-index:1; top:56px; right:10px; left:10px; grid-column:auto; grid-row:auto; width:auto; margin:0; padding:0 4px; color:#344054; font-size:16px; font-weight:600; line-height:1.425; letter-spacing:-.25px; text-align:left; }
+  .manager-support__card p::before { content:""; width:160px; height:21px; float:right; }
+  .manager-support__card:last-child::before { background:#5b362d; }
   .manager-support__closing { flex:0 0 auto; margin-top:9px; font-size:15px; line-height:1.35; letter-spacing:-.55px; white-space:nowrap; }
   .section6-mascot { display:none; }
 
@@ -683,10 +697,11 @@ h1, h2, h3, p { margin: 0; }
   .faq__panel { padding:4px 5px; border-radius:18px; }
   .faq-accordion__item { border-radius:13px; }
   .faq-accordion__question { min-height:58px; padding:12px 12px 12px 14px; gap:10px; border-radius:13px; }
-  .faq-accordion__question > span { font-size:15px; line-height:1.38; letter-spacing:-.5px; }
-  .faq-accordion__question > span b { margin-right:7px; }
+  .faq-accordion__question > span { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:7px; font-size:15px; line-height:1.38; letter-spacing:-.5px; }
+  .faq-accordion__question > span b { margin-right:0; }
   .faq-accordion__icon { flex-basis:26px; width:26px; height:26px; }
   .faq-accordion__answer-inner { padding:0 44px 0 14px; gap:7px; font-size:14px; line-height:1.55; }
+  .faq-accordion__answer-inner p { color:#344054; font-weight:600; }
   .faq-accordion__item.is-open .faq-accordion__answer-inner { padding-bottom:15px; }
 
   /* Section 8: the consultation page scrolls; the form itself never does. */
@@ -711,7 +726,7 @@ h1, h2, h3, p { margin: 0; }
   .consultation-form__apps-wrap.is-error::before { content:""; position:absolute; z-index:0; top:-12px; right:-9px; bottom:-10px; left:-9px; border:1px solid rgba(241,90,36,.38); border-radius:16px; background:rgba(241,90,36,.04); box-shadow:0 6px 16px rgba(241,90,36,.07); pointer-events:none; }
   .consultation-form__apps-wrap.is-error > .consultation-form__apps { position:relative; z-index:1; }
   .consultation-form__apps-wrap.is-error.is-alerting::before { animation:consultation-apps-error-pulse .96s ease-in-out; }
-  .consultation-form__apps legend { margin-bottom:11px; color:#343947; font-size:23.5px; font-weight:800; line-height:1.22; letter-spacing:-.55px; }
+  .consultation-form__apps legend { margin-bottom:11px; color:#343947; font-size:16px; font-weight:800; line-height:1.22; letter-spacing:-.55px; }
   .consultation-form__apps legend small { display:inline-block; margin-left:4px; color:#858a94; font-size:14px; font-weight:600; }
   .consultation-form__chips { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
   .consultation-form__chips label { position:relative; width:100%; min-width:0; cursor:pointer; }
@@ -720,11 +735,14 @@ h1, h2, h3, p { margin: 0; }
   .consultation-form__chips input:checked + span { border-color:#f15a24; background:#fff0eb; color:#d9471c; }
   .consultation-form__chips input:focus-visible + span { outline:3px solid rgba(0,70,255,.24); outline-offset:2px; }
   .consultation-form__apps-error { margin:8px 0 0; color:#d9471c; font-size:14px; font-weight:700; line-height:1.4; }
-  .consultation-form__privacy-row { display:grid; min-width:0; margin-top:2px; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:8px 10px; }
-  .consultation-form__privacy { display:flex; align-items:flex-start; gap:8px; color:#4f5561; font-size:14px; font-weight:650; line-height:1.45; cursor:pointer; }
+  .consultation-form__privacy-row { display:grid; min-width:0; margin-top:2px; grid-template-columns:minmax(0,1fr); align-items:start; gap:4px; }
+  .consultation-form__privacy { display:grid; min-width:0; grid-template-columns:22px minmax(0,1fr); align-items:start; gap:8px; color:#4f5561; font-size:14px; font-weight:650; line-height:1.45; cursor:pointer; }
+  .consultation-form__privacy-lead { white-space:nowrap; }
+  .consultation-form__privacy > span { word-break:keep-all; }
+  .consultation-form__privacy-toggle { margin-left:30px; justify-self:start; white-space:nowrap; }
   .consultation-form__privacy input { flex:0 0 auto; width:22px; height:22px; margin:0; accent-color:#0046ff; }
   .consultation-form__privacy b { color:#f15a24; font-weight:800; white-space:nowrap; }
-  .consultation-form__privacy-toggle { padding:2px 0 0; display:inline-flex; align-items:center; gap:3px; border:0; background:none; color:#4f5561; font-size:13px; font-weight:750; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+  .consultation-form__privacy-toggle { padding:0; display:inline-flex; align-items:center; gap:3px; border:0; background:none; color:#4f5561; font-size:13px; font-weight:750; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
   .consultation-form__privacy-details { grid-column:1 / -1; width:100%; margin:3px 0 0; padding:14px; display:flex; flex-direction:column; gap:10px; border:1px solid rgba(79,85,97,.12); border-radius:13px; background:#f7f8fa; color:#626874; font-size:13px; }
   .consultation-form__privacy-details dt { color:#343947; font-weight:800; }
   .consultation-form__privacy-details dd { margin:3px 0 0; font-weight:500; line-height:1.5; word-break:keep-all; }
@@ -751,9 +769,90 @@ h1, h2, h3, p { margin: 0; }
   .consultation-footer__bottom p { display:flex; flex-direction:column; gap:6px; color:#aeb3bd; font-size:11px; font-weight:500; line-height:1.5; word-break:keep-all; overflow-wrap:break-word; }
   .consultation-footer__bottom small { color:#8f95a1; font-size:11px; line-height:1.4; white-space:normal; word-break:keep-all; }
 }
+@media (min-width:410px) and (max-width:600px) and (min-height:900px) {
+  .pain__bridge { translate:0 24px; }
+  .pain--bridge .pain__bridge-rider { translate:0 -8px; }
+  .section5-benefits__visuals .section5-phone--national { scale:1.21; translate:5px 10px; transform-origin:center; }
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--onnuri,
+  .section5-benefits__visuals .section5-phone--coupon { transform:scale(1.15); transform-origin:center bottom; }
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--coupon { top:calc(100svh - 499.2px); }
+  .section5-benefits__visuals .section5-phone--onnuri { top:calc(100svh - 511.2px); }
+  .manager-support__steps { grid-template-rows:repeat(4,minmax(0,1fr)); gap:max(36px,calc((100% - 448px) / 4)); }
+  .manager-support__card:not(:last-child)::after {
+    top:calc(100% + 1px + max(36px,(100cqh - 448px) / 4) / 2);
+    width:24px;
+    height:24px;
+  }
+  .manager-support__card p { padding-bottom:max(0px,calc((100cqh - 448px - max(108px,(100cqh - 448px) * .75)) / 4 - 8px)); }
+  .manager-support__closing { height:20.25px; margin-bottom:32px; font-size:18.975px; white-space:normal; translate:0 12px; }
+}
+
+
+
+@media (max-width:390px) {
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--onnuri,
+  .section5-benefits__visuals .section5-phone--coupon { height:215.18px; }
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--coupon { top:387px; }
+  .section5-benefits__visuals .section5-phone--onnuri { top:375px; }
+  .section5-benefits__visuals .section5-phone--local .section5-phone__screen,
+  .section5-benefits__visuals .section5-phone--onnuri .section5-phone__screen,
+  .section5-benefits__visuals .section5-phone--coupon .section5-phone__screen { height:215.18px; }
+  .section5-benefits__visuals .section5-phone--local .section5-phone__screen img,
+  .section5-benefits__visuals .section5-phone--onnuri .section5-phone__screen img,
+  .section5-benefits__visuals .section5-phone--coupon .section5-phone__screen img { height:215.18px; max-height:215.18px; }
+}
+
+.pain__settlement-question-small { display:none; }
 
 @media (max-width:600px) and (max-height:700px) {
+  .pain__settlement-question-default { display:none; }
+  .pain__settlement-question-small { display:inline; white-space:nowrap; }
+  .pain .empathy-visual,
+  .pain .pain__settlement-accent,
+  .pain .pain__fees-accent,
+  .pain--bridge .pain__bridge-rider { display:none; }
+  .pain__layout { padding:88px 24px 98px; }
+  .pain__copy, .pain__copy--fees { top:0; height:100%; justify-content:space-evenly; }
+  .pain__bridge { height:100%; padding:88px 24px 98px; gap:0; justify-content:space-between; transform:none; }
+
+  .section5-benefits__visuals { left:-14.1025%; width:128.205%; height:438px; flex-basis:438px; transform:scale(.78); transform-origin:top center; }
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--onnuri,
+  .section5-benefits__visuals .section5-phone--coupon { height:134.4px; transform:scale(1.859); transform-origin:center bottom; }
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--coupon { top:406px; }
+  .section5-benefits__visuals .section5-phone--onnuri { top:396px; }
+  .section5-benefits__visuals .section5-phone--onnuri .section5-phone__screen img { rotate:-15deg; transform-origin:center; }
+  .section5-benefits__visuals .section5-phone--national { translate:0 calc(-10px / .78); rotate:8deg; transform-origin:center; }
+  .section5-benefits__visuals .section5-phone--local { left:calc(0% - 18.55px); }
+  .section5-benefits__visuals .section5-phone--onnuri { left:calc(33.3333% - 14.86px); }
+  .section5-benefits__visuals .section5-phone--coupon { left:calc(66.6667% + 3.69px); }
+
+  .section5-benefits__visuals .section5-phone--brand { translate:0 calc(-10px / .78); }
+  .section5-benefits__visuals .section5-phone--local .section5-phone__screen,
+  .section5-benefits__visuals .section5-phone--onnuri .section5-phone__screen,
+  .section5-benefits__visuals .section5-phone--coupon .section5-phone__screen { top:0; height:134.4px; }
+  .section5-benefits__visuals .section5-phone--local .section5-phone__screen img,
+  .section5-benefits__visuals .section5-phone--onnuri .section5-phone__screen img,
+  .section5-benefits__visuals .section5-phone--coupon .section5-phone__screen img { height:134.4px; max-height:134.4px; }
   .owner-benefits__mobile-video { object-position:center 40%; }
+  .manager-support__inner { padding:64px 0 78px; }
+  .manager-support__header p { margin-top:1px; }
+  .manager-support__steps { margin-top:1px; grid-template-rows:repeat(4,94px); align-content:space-between; gap:24px; }
+  .manager-support__card { padding:3px 8px 4px; grid-template-columns:40px minmax(0,1fr) 56px; grid-template-rows:31px 1fr; gap:2px 6px; border-radius:18px; }
+  .manager-support__card::before { height:36px; border-radius:17px 17px 9px 9px; }
+  .manager-support__number { width:28px; height:22px; border-radius:8px; font-size:14px; }
+  .manager-support__card h3 { padding-right:58px; font-size:21px; line-height:1.15; }
+  .manager-support__illustration { top:36px; right:8px; width:58.24px; height:58.24px; margin:0; border-radius:17px; transform:translateY(-50%); }
+  .manager-support__card p { top:47px; right:8px; left:8px; grid-column:auto; grid-row:auto; margin:0; padding:0 2px; color:#344054; font-size:13.5px; font-weight:600; line-height:1.35; }
+  .manager-support__card p::before { width:60px; height:18px; }
+  .manager-support__illustration svg { width:48.4px; height:48.4px; }
+  .manager-support__card:not(:last-child)::after { top:calc(100% + 1px + (100cqh - 376px) / 6); width:16px; height:16px; background-size:60% 45%; box-shadow:0 0 0 1px #fff4f1; }
+  .manager-support__closing { margin-top:2px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -768,4 +867,617 @@ h1, h2, h3, p { margin: 0; }
   .manager-support__card:hover .manager-support__illustration { transform:none; }
   .fixed-consult-cta.is-visible:hover,
   .fixed-consult-cta.is-visible.is-scroll-reacting { scale:1; transform:translate(-50%,0); }
+}
+
+/* Tablet portrait: isolated from the confirmed mobile and landscape/desktop layouts. */
+@media (min-width:601px) and (max-width:1100px) and (orientation:portrait) {
+  .site-nav { display:none; }
+  .mobile-menu-toggle { grid-column:3; justify-self:end; display:grid; width:48px; height:48px; padding:0; place-items:center; border:1px solid rgba(255,255,255,.55); border-radius:50%; background:rgba(20,20,20,.18); color:inherit; font-size:27px; line-height:1; cursor:pointer; }
+  .mobile-menu-toggle span { transform:translateY(-1px); }
+  .mobile-nav { position:absolute; top:calc(100% + 8px); right:20px; left:20px; display:flex; padding:12px; flex-direction:column; gap:2px; border:1px solid rgba(255,255,255,.16); border-radius:20px; background:rgba(23,23,23,.96); color:#fff; box-shadow:0 14px 32px rgba(0,0,0,.18); opacity:0; visibility:hidden; pointer-events:none; transform:translateY(-8px); transition:opacity .2s ease,transform .2s ease,visibility .2s ease; }
+  .mobile-nav.is-open { opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0); }
+  .mobile-nav a { padding:13px 16px; border-radius:12px; font-size:19px; font-weight:750; }
+  .back-to-top { touch-action:none; }
+  .mobile-nav a:active { background:rgba(255,255,255,.08); }
+
+  .pain__item { font-size:1.955rem; }
+  .pain__bridge-step { font-size:2.15rem; }
+  .pain__copy, .pain__copy--fees { height:600px; max-height:calc(100svh - 290px); translate:-16px 0; }
+  .empathy-visual--settlement { right:-40px; width:min(40.25vw,540.5px); height:55.2vh; max-height:575px; translate:0 80.12px; }
+  .empathy-visual--fees { right:-40px; bottom:13%; width:min(44.85vw,609.5px); height:58.65vh; max-height:632.5px; transform:scale(1.15); transform-origin:75% 50%; translate:20px 87.33px; }
+  .pain__bridge { height:400px; max-height:calc(100svh - 520px); gap:32px; transform:translateY(-110px); }
+  .pain__bridge-rider { position:absolute; z-index:2; left:50%; bottom:130px; width:auto; height:240px; object-fit:contain; transform:translateX(-50%); pointer-events:none; }
+
+  .owner-benefits__step-stage { top:104px; height:calc(100svh - 104px); }
+  .owner-benefits__desktop-video { top:0; width:auto; height:calc(100svh - 104px); max-width:95vw; max-height:calc(100svh - 104px); aspect-ratio:9 / 16; object-fit:contain; align-self:flex-start; }
+
+  .section5-benefits { top:134px; bottom:140px; width:calc(100% - 48px); display:flex; flex-direction:column; }
+  .section5-benefits__copy { position:static; width:100%; flex:0 0 auto; text-align:center; }
+  .section5-benefits__copy h2 { font-size:clamp(34px,5.47vw,48px); line-height:1.16; letter-spacing:-2px; white-space:normal; }
+  .section5-benefits__copy p { margin-top:12px; font-size:18px; line-height:1.5; white-space:normal; }
+  .section5-benefits__visuals { position:relative; inset:auto; width:100%; min-height:0; margin-top:20px; flex:1 1 auto; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:minmax(0,1.5fr) minmax(0,1fr); gap:16px; transform:none; }
+  .section5-benefits__visuals .section5-phone { position:relative; inset:auto; width:100%; height:100%; min-width:0; min-height:0; display:grid; place-items:center; }
+  .section5-benefits__visuals .section5-phone--national { grid-column:1 / 3; grid-row:1; scale:1.4; rotate:10deg; translate:40px -8px; transform-origin:center; }
+  .section5-benefits__visuals .section5-phone--brand { grid-column:3 / 5; grid-row:1; width:auto; max-width:100%; aspect-ratio:.57; justify-self:center; }
+  .section5-benefits__visuals .section5-phone--local { grid-column:1; grid-row:2; }
+  .section5-benefits__visuals .section5-phone--onnuri { grid-column:2; grid-row:2; }
+  .section5-benefits__visuals .section5-phone--coupon { grid-column:3; grid-row:2; }
+  .section5-benefits__visuals .section5-phone--rest { grid-column:4; grid-row:2; }
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--onnuri,
+  .section5-benefits__visuals .section5-phone--coupon,
+  .section5-benefits__visuals .section5-phone--rest { scale:1.1; transform-origin:center; }
+  .section5-benefits__visuals .section5-phone--asset .section5-phone__screen { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  .section5-benefits__visuals .section5-phone--asset .section5-phone__screen img { width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; }
+
+  .manager-support__inner { width:calc(100% - 64px); padding:140px 0 136px; justify-content:flex-start; }
+  .manager-support__header { transform:none; }
+  .manager-support__header h2 { font-size:clamp(30px,5.2vw,44px); letter-spacing:-2px; white-space:normal; }
+  .manager-support__header p { margin-top:14px; font-size:18px; white-space:normal; }
+  .manager-support__steps { margin-top:26px; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,minmax(260px,auto)); gap:48px 32px; }
+  .manager-support__card { min-height:0; padding:12px 20px 20px; border-radius:21px; border-color:rgba(241,90,36,.27); background:#fff; }
+  .manager-support__card::before { content:""; position:absolute; inset:0 0 auto; height:56px; border-radius:20px 20px 10px 10px; background:#5b362d; }
+  .manager-support__number { position:relative; z-index:1; width:36px; height:28px; display:grid; place-items:center; border-radius:9px; background:#f15a24; color:#fff; font-size:18px; letter-spacing:-.4px; }
+  .manager-support__card h3 { position:absolute; z-index:1; top:16px; left:66px; right:12px; margin:0; color:#fff; font-size:23px; line-height:1.2; letter-spacing:-.8px; }
+  .manager-support__illustration { position:absolute; top:auto; bottom:20px; right:20px; width:72px; height:72px; margin:0; border:2px solid #f47735; border-radius:20px; background:linear-gradient(135deg,#fff2b8 0%,#ffd1a8 100%); }
+  .manager-support__illustration svg { width:60px; height:60px; }
+  .manager-support__illustration .manager-support__illustration-desktop { display:none; }
+  .manager-support__illustration .manager-support__illustration-mobile { display:block !important; }
+  .manager-support__card p { position:absolute; top:70px; left:20px; right:20px; margin:0; color:#344054; font-size:18px; font-weight:600; line-height:1.5; }
+  .manager-support__card:not(:last-child)::after { z-index:3; top:50%; right:-16px; color:#f15a24; font-size:28px; transform:translate(50%,-50%); }
+  .manager-support__card:nth-child(2)::after { content:"↙"; top:calc(100% + 24px); right:auto; left:-16px; transform:translate(-50%,-50%); }
+  .manager-support__closing { margin-top:22px; font-size:23px; line-height:1.4; white-space:normal; text-align:center; }
+  .section6-mascot { display:none; }
+
+  .consultation__inner { width:calc(100% - 48px); padding-top:140px; }
+  .faq-accordion__question > span { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:10px; }
+  .faq-accordion__question > span b { margin-right:0; }
+
+  .consultation__header h2 { font-size:clamp(32px,5.47vw,46px); white-space:normal; }
+  .consultation__layout { margin-top:36px; grid-template-columns:minmax(0,65fr) minmax(0,35fr); grid-template-rows:auto 1fr; gap:24px 20px; align-items:start; }
+  .consultation-form { grid-column:1; grid-row:1 / 3; padding:22px; }
+  .consultation-form__field { grid-template-columns:1fr; gap:8px; }
+  .consultation-form__apps legend { font-size:20px; }
+  .consultation-form__apps legend small { font-size:13px; }
+  .consultation-form__chips span { padding:0 8px; }
+  .consultation-form__privacy-row { grid-template-columns:minmax(0,1fr); gap:8px; }
+  .consultation-form__privacy { align-items:flex-start; }
+  .consultation-form__privacy input { margin-top:2px; }
+  .consultation-form__privacy-toggle { grid-column:1; grid-row:2; justify-self:start; margin-left:33px; }
+  .consultation-form__privacy-details { grid-row:3; }
+  .consultation-form__submit { width:100%; padding:0 12px; font-size:22px; }
+  .consultation__trust { grid-column:2; grid-row:1; }
+  .consultation__trust-card { padding:16px 12px; gap:10px; }
+  .consultation__trust-card--consulting { position:static; }
+  .consultation__visual { grid-column:2; grid-row:2; width:150px; justify-self:center; align-self:start; }
+  .consultation-footer { height:auto; min-height:120px; }
+  .consultation-footer__inner { padding:20px 0; gap:14px; }
+  .consultation-footer__top, .consultation-footer__bottom { flex-wrap:wrap; gap:14px; }
+}
+  .consultation-footer__bottom small { margin-right:80px; }
+
+/* Large tablet portrait: proportionally extends the confirmed 768 × 1024 composition. */
+@media (min-width:900px) and (max-width:1100px) and (orientation:portrait) {
+  .pain__item { min-height:12.695svh; font-size:4.073vw; }
+  .pain__copy, .pain__copy--fees { height:58.594svh; max-height:none; translate:-2.083vw 0; }
+  .empathy-visual--settlement { right:-5.208vw; height:55.2vh; max-height:none; translate:0 calc(7.824svh - 22px); }
+  .empathy-visual--fees { right:-5.208vw; height:58.65vh; max-height:none; translate:2.604vw calc(8.528svh - 22px); }
+
+  .pain__bridge { height:39.063svh; max-height:none; gap:3.125svh; transform:translateY(-10.742svh); }
+  .pain__bridge-step { font-size:4.479vw; }
+  .pain__bridge-rider { bottom:12.695svh; height:23.438svh; }
+
+  .owner-benefits__step-stage--video { top:104px; right:0; bottom:auto; left:0; height:calc(100svh - 104px); padding:0; align-items:flex-start; justify-content:center; overflow:hidden; background:#15120f; }
+  .owner-benefits__animation.owner-benefits__desktop-video { position:relative; inset:auto; top:0; display:block; flex:0 0 auto; width:auto; height:calc(100svh - 104px); max-width:95vw; max-height:calc(100svh - 104px); aspect-ratio:9 / 16; object-fit:contain; object-position:center; align-self:flex-start; }
+
+  .section5-benefits__visuals .section5-phone--national { translate:88px -8px; }
+
+  .manager-support__inner { padding:188px 0 136px; }
+  .manager-support__header h2 { font-size:54px; }
+  .manager-support__header p { margin-top:19px; font-size:24px; }
+  .manager-support__steps { margin-top:35px; grid-template-rows:repeat(2,minmax(350px,auto)); gap:64px 42px; }
+  .manager-support__card { padding:16px 27px 27px; border-radius:28px; }
+  .manager-support__card::before { height:75px; border-radius:27px 27px 13px 13px; }
+  .manager-support__number { width:48px; height:38px; border-radius:12px; font-size:24px; }
+  .manager-support__card h3 { top:21px; left:89px; font-size:31px; }
+  .manager-support__illustration { right:27px; bottom:27px; width:97px; height:97px; border-radius:27px; }
+  .manager-support__illustration svg { width:81px; height:81px; }
+  .manager-support__card p { top:94px; right:27px; left:27px; font-size:24px; }
+  .manager-support__card:not(:last-child)::after { right:-21px; font-size:38px; }
+  .manager-support__card:nth-child(2)::after { top:calc(100% + 32px); right:auto; left:-20px; }
+  .manager-support__closing { margin-top:30px; font-size:31px; }
+
+  .consultation__inner { padding-top:158px; }
+  .consultation__header h2 { font-size:50px; }
+  .consultation__header p { margin-top:18px; font-size:21px; }
+  .consultation__layout { margin-top:44px; gap:28px 24px; }
+  .consultation-form { padding:28px; gap:22px; }
+  .consultation-form__fields { gap:18px; }
+  .consultation-form__field { gap:10px; font-size:20px; }
+  .consultation-form__field input { height:72px; padding:0 25px; font-size:20px; }
+  .consultation-form__apps legend { margin-bottom:16px; font-size:24px; }
+  .consultation-form__chips { gap:10px; }
+  .consultation-form__chips span { height:52px; font-size:18px; }
+  .consultation-form__privacy { font-size:18px; }
+  .consultation-form__submit { height:72px; font-size:24px; }
+  .consultation-form__phone { font-size:16px; }
+  .consultation-form__phone a { font-size:21px; }
+  .consultation__trust { gap:20px; }
+  .consultation__trust-card { min-height:110px; padding:20px 16px; gap:14px; }
+  .consultation__trust-card strong { font-size:20px; }
+  .consultation__trust-icon { flex-basis:54px; width:54px; height:54px; }
+  .consultation__trust-icon svg { width:35px; height:35px; }
+  .consultation__visual { width:180px; }
+}
+
+/* Surface Pro 10 portrait: isolated adjustments for the taller 960 × 1440 viewport. */
+@media (min-width:900px) and (max-width:999px) and (min-height:1400px) and (orientation:portrait) {
+  .hero-rider { height:420px; min-height:0; max-height:none; bottom:148px; }
+
+  .pain__copy, .pain__copy--fees { height:53.438svh; translate:-2.083vw 2.578svh; }
+
+  .section5-benefits__visuals .section5-phone--brand { z-index:5; }
+
+  .manager-support__closing { font-size:36px; translate:0 25px; }
+}
+
+/* Low-height landscape: retain the PC composition while fitting the 1280 × 800 viewport. */
+@media (min-width:1200px) and (max-width:1300px) and (max-height:850px) and (orientation:landscape) {
+  .hero-rider { right:32px; bottom:0; width:310px; height:auto; }
+  .hero-line-top { font-size:118px; line-height:.95; letter-spacing:-6.2px; }
+  .hero-line-main { margin-top:16px; font-size:168px; line-height:.95; letter-spacing:-9px; }
+
+  .empathy-visual--fees { right:0; transform:scale(1.1); transform-origin:bottom center; }
+
+  .pain__bridge { height:440px; max-height:440px; }
+  .pain__bridge-rider { position:absolute; z-index:2; right:30px; bottom:132px; left:auto; width:auto; height:242px; object-fit:contain; transform:none; pointer-events:none; }
+
+  .section5-benefits__visuals { transform:none; }
+  .section5-benefits__copy { top:-12px; left:32px; width:540px; }
+  .section5-benefits__copy h2 { font-size:43.2px; line-height:1.02; white-space:nowrap; }
+  .section5-benefits__copy p { margin-top:10px; font-size:18px; line-height:1.45; white-space:nowrap; }
+  .section5-phone--brand { top:78px; bottom:auto; left:56px; width:308px; }
+  .section5-phone--national { top:-69px; left:379.6px; width:452.76px; rotate:15deg; transform-origin:center; }
+  .section5-phone--local { top:-8.43px; left:860.05px; width:173.68px; }
+  .section5-phone--onnuri { top:-11.74px; left:1051.91px; width:201.3px; }
+  .section5-phone--coupon { top:310.57px; bottom:auto; left:840.08px; width:215.8px; }
+  .section5-phone--rest { top:301.63px; bottom:auto; left:1060.07px; width:187.85px; }
+
+  .manager-support__inner { padding:128px 0 100px; justify-content:flex-start; }
+  .manager-support__header { transform:none; }
+  .manager-support__steps { margin-top:22px; gap:35px; }
+  .manager-support__card { height:320px; min-height:320px; padding:22px 26px 24px; }
+  .manager-support__number { font-size:44px; }
+  .manager-support__illustration { height:90px; margin-top:2px; }
+  .manager-support__illustration svg { width:112px; height:90px; }
+  .manager-support__card h3 { margin-top:6px; }
+  .manager-support__card p { margin-top:10px; }
+  .manager-support__closing { margin-top:20px; }
+  .section6-mascot { display:none; }
+
+  .manager-support__card:not(:last-child)::after { right:-17.5px; color:#f15a24; font-size:30px; font-weight:900; text-shadow:0 1px 0 rgba(255,255,255,.85); }
+  .consultation__inner { padding-top:124px; }
+  .consultation__layout { margin-top:32px; }
+  .consultation-form { translate:0 -16px; }
+}
+
+/* Foldable unfolded (984 x 1092 portrait / 1092 x 984 landscape): tablet-class width with a short viewport height. */
+@media (min-width:900px) and (max-width:1100px) and (max-height:1150px) and (orientation:portrait),
+       (min-width:900px) and (max-width:1100px) and (min-height:950px) and (max-height:1050px) and (orientation:landscape) {
+  /* Header: 세로판(601~1100 portrait)과 동일한 햄버거 구조를 축자 재사용 */
+  .site-nav { display:none; }
+  .mobile-menu-toggle { grid-column:3; justify-self:end; display:grid; width:48px; height:48px; padding:0; place-items:center; border:1px solid rgba(255,255,255,.55); border-radius:50%; background:rgba(20,20,20,.18); color:inherit; font-size:27px; line-height:1; cursor:pointer; }
+  .mobile-menu-toggle span { transform:translateY(-1px); }
+  .mobile-nav { position:absolute; top:calc(100% + 8px); right:20px; left:20px; display:flex; padding:12px; flex-direction:column; gap:2px; border:1px solid rgba(255,255,255,.16); border-radius:20px; background:rgba(23,23,23,.96); color:#fff; box-shadow:0 14px 32px rgba(0,0,0,.18); opacity:0; visibility:hidden; pointer-events:none; transform:translateY(-8px); transition:opacity .2s ease,transform .2s ease,visibility .2s ease; }
+  .mobile-nav.is-open { opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0); }
+  .mobile-nav a { padding:13px 16px; border-radius:12px; font-size:19px; font-weight:750; }
+  .mobile-nav a:active { background:rgba(255,255,255,.08); }
+
+  /* #0 Hero: 세로가 짧아 카피와 라이더를 압축한다 */
+  .hero-copy { translate:0 -60px; }
+  .hero-line-top { font-size:124.8px; letter-spacing:-7.02px; }
+  .hero-line-main { margin-top:17.16px; font-size:179.4px; letter-spacing:-10.14px; }
+  .hero-rider { right:24px; bottom:132px; width:345.6px; height:auto; min-height:0; max-height:none; }
+
+  /* #6 구조: 세로판의 2x2 카드 구조를 축자 재사용 (601~1100 portrait) */
+  .manager-support__inner { width:calc(100% - 64px); padding:140px 0 136px; justify-content:flex-start; }
+  .manager-support__header { transform:none; }
+  .manager-support__header h2 { font-size:clamp(30px,5.2vw,44px); letter-spacing:-2px; white-space:normal; }
+  .manager-support__header p { margin-top:14px; font-size:18px; white-space:normal; }
+  .manager-support__steps { margin-top:26px; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,minmax(260px,auto)); gap:48px 32px; }
+  .manager-support__card { min-height:0; padding:12px 20px 20px; border-radius:21px; border-color:rgba(241,90,36,.27); background:#fff; }
+  .manager-support__card::before { content:""; position:absolute; inset:0 0 auto; height:56px; border-radius:20px 20px 10px 10px; background:#5b362d; }
+  .manager-support__number { position:relative; z-index:1; width:36px; height:28px; display:grid; place-items:center; border-radius:9px; background:#f15a24; color:#fff; font-size:18px; letter-spacing:-.4px; }
+  .manager-support__card h3 { position:absolute; z-index:1; top:16px; left:66px; right:12px; margin:0; color:#fff; font-size:23px; line-height:1.2; letter-spacing:-.8px; }
+  .manager-support__illustration { position:absolute; top:auto; bottom:20px; right:20px; width:72px; height:72px; margin:0; border:2px solid #f47735; border-radius:20px; background:linear-gradient(135deg,#fff2b8 0%,#ffd1a8 100%); }
+  .manager-support__illustration svg { width:60px; height:60px; }
+  .manager-support__illustration .manager-support__illustration-desktop { display:none; }
+  .manager-support__illustration .manager-support__illustration-mobile { display:block !important; }
+  .manager-support__card p { position:absolute; top:70px; left:20px; right:20px; margin:0; color:#344054; font-size:18px; font-weight:600; line-height:1.5; }
+  .manager-support__card:not(:last-child)::after { z-index:3; top:50%; right:-16px; color:#f15a24; font-size:28px; transform:translate(50%,-50%); }
+  .manager-support__card:nth-child(2)::after { content:"↙"; top:calc(100% + 24px); right:auto; left:-16px; transform:translate(-50%,-50%); }
+  .manager-support__closing { margin-top:22px; font-size:23px; line-height:1.4; white-space:normal; text-align:center; }
+  .section6-mascot { display:none; }
+
+  /* #6 치수: 세로판 900~1100 portrait 값을 축자 재사용 */
+  .manager-support__inner { padding:188px 0 136px; }
+  .manager-support__header h2 { font-size:54px; }
+  .manager-support__header p { margin-top:19px; font-size:24px; }
+  .manager-support__steps { margin-top:35px; grid-template-rows:repeat(2,minmax(350px,auto)); gap:64px 42px; }
+  .manager-support__card { padding:16px 27px 27px; border-radius:28px; }
+  .manager-support__card::before { height:75px; border-radius:27px 27px 13px 13px; }
+  .manager-support__number { width:48px; height:38px; border-radius:12px; font-size:24px; }
+  .manager-support__card h3 { top:21px; left:89px; font-size:31px; }
+  .manager-support__illustration { right:27px; bottom:27px; width:97px; height:97px; border-radius:27px; }
+  .manager-support__illustration svg { width:81px; height:81px; }
+  .manager-support__card p { top:94px; right:27px; left:27px; font-size:24px; }
+  .manager-support__card:not(:last-child)::after { right:-21px; font-size:38px; }
+  .manager-support__card:nth-child(2)::after { top:calc(100% + 32px); right:auto; left:-20px; }
+  .manager-support__closing { margin-top:30px; font-size:31px; }
+
+  /* #6 전담 매니저: 2x2 유지하고 카드 높이와 여백만 압축한다 */
+  .manager-support__inner { padding:140px 0 40px; }
+  .manager-support__header p { margin-top:12px; }
+  .manager-support__steps { margin-top:20px; grid-template-rows:repeat(2,minmax(288px,auto)); gap:28px 42px; }
+  .manager-support__card { padding:14px 22px 20px; }
+  .manager-support__card::before { height:64px; }
+  .manager-support__number { width:42px; height:34px; font-size:21px; }
+  .manager-support__card h3 { top:18px; left:80px; font-size:27px; }
+  .manager-support__card p { top:80px; right:22px; left:22px; font-size:21px; line-height:1.5; }
+  .manager-support__illustration { right:22px; bottom:20px; width:80px; height:80px; border-radius:22px; }
+  .manager-support__illustration svg { width:66px; height:66px; }
+  .manager-support__card:nth-child(2)::after { top:calc(100% + 14px); }
+  .manager-support__closing { margin-top:16px; font-size:26px; }
+}
+
+/* Foldable unfolded LANDSCAPE only (1092 x 984): 세로판보다 높이가 108px 짧아 추가 압축한다. */
+@media (min-width:900px) and (max-width:1100px) and (min-height:950px) and (max-height:1050px) and (orientation:landscape) {
+  /* #3 브리지: 오른쪽 중하단에 라이더 배치 · 240px(+20%) 로 키우고 위로 40px (노란 문구 무수정) */
+  .pain--bridge .pain__bridge-rider { position:absolute; z-index:2; right:52px; bottom:298px; left:auto; width:auto; height:240px; object-fit:contain; transform:none; pointer-events:none; }
+
+  /* [비교 테스트] #4 콘텐츠 영역 배경만 차콜. 크림색이 섹션과 스테이지 두 겹에 있어 둘 다 바꾼다.
+     되돌릴 때는 이 두 줄만 지우면 원래 #fff4f1 로 복귀한다. */
+  .screen.owner-benefits { background:#17191E; }
+  .owner-benefits__step-stage { background:#17191E; }
+
+  /* #4 FREE 영상: 요소 박스가 4:3 이라 안에서 위아래로 잘려 보이던 것을 16:9 박스로 바꾸고
+     가로를 꽉 채운다. width 만 키우지 않고 height:auto + aspect-ratio 로 세로도 같은 비율로 커진다. */
+  .owner-benefits__animation.owner-benefits__desktop-video {
+    /* [2차 테스트] 영상 위 차콜 띠를 줄이려고 115% 확대 + 좌우 크롭.
+       부모(.owner-benefits__step-stage)가 overflow:hidden 이라 화면 밖만 잘린다. */
+    position:relative; top:-57px; flex:0 0 auto; width:115%; height:auto;
+    max-width:none; max-height:none; aspect-ratio:16 / 9;
+    object-fit:contain; object-position:center;
+  }
+
+  /* #5 대표 이미지: 위로 28px (부모가 scale(.8) 이라 CSS 35px = 화면 28px) */
+  .section5-phone--national { translate:0 -35px; }
+
+  /* #5 오른쪽 4개: 실제 보이는 높이를 330px 로 통일하고 중앙 쪽으로 재배치.
+     대표 이미지의 피자/커피 소품과 겹치는 것은 허용(z-index 5로 앞에 둔다). */
+  .section5-phone--local,
+  .section5-phone--onnuri,
+  .section5-phone--coupon,
+  .section5-phone--rest { z-index:5; right:auto; translate:none; }
+  .section5-phone--local { top:-97.56px; left:691.95px; width:234.1px; }
+  .section5-phone--onnuri { top:-102.04px; left:929.93px; width:271.4px; }
+  .section5-phone--coupon { top:348.79px; bottom:auto; left:665.06px; width:290.9px; }
+  .section5-phone--rest { top:336.72px; bottom:auto; left:940.95px; width:253.2px; }
+
+  /* #6 전담 매니저: 2x2 유지 + 높이/여백 추가 회수 */
+  .manager-support__inner { padding:130px 0 40px; }
+  .manager-support__steps { margin-top:24px; grid-template-rows:repeat(2,minmax(248px,auto)); gap:20px 42px; }
+  .manager-support__illustration { bottom:16px; width:72px; height:72px; border-radius:20px; }
+  .manager-support__illustration svg { width:60px; height:60px; }
+  .manager-support__card:nth-child(2)::after { top:calc(100% + 10px); }
+  .manager-support__closing { margin-top:22px; }
+
+  /* #8 상담폼: 폼 박스를 위로, 오른쪽 혜택 카드 상단을 폼 상단에 맞춤 */
+  .consultation-form { translate:0 -30px; }
+  .consultation__trust { translate:0 -161.4px; }
+  .consultation__visual { translate:0 96.4px; }
+}
+
+/* #4 FREE 영상 섹션 배경: 전 해상도 차콜 통일.
+   파일 맨 끝에 두어 앞쪽 미디어쿼리의 크림(#fff4f1) / 다크(#15120f) 배경을 모두 덮는다.
+   배경색만 지정하며 레이아웃·영상·CTA 속성은 건드리지 않는다. */
+.screen.owner-benefits { background:#17191E; }
+.owner-benefits__step-stage,
+.owner-benefits__step-stage--video { background:#17191E; }
+
+/* ===== 기종별 실기 검수 보정 (2026-09-19) — 아래 3개 조건은 서로 겹치지 않고
+   기존 완료 해상도(375x667 390x844 393x852 412x968 427x952 440x956 768x1024
+   853x1280 960x1440 1032x1376 984x1092 1092x984 1280x800 1280x900)에도 걸리지 않는다. ===== */
+
+/* [Pixel 10 · 412 x 924] #5 하단 휴대폰 3개만 10px 아래로. 크기/가로/간격/회전 무변경. */
+@media (min-width:410px) and (max-width:600px) and (min-height:900px) and (max-height:940px) {
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--coupon { top:calc(100svh - 482.2px); }
+  .section5-benefits__visuals .section5-phone--onnuri { top:calc(100svh - 494.2px); }
+}
+
+/* [Galaxy A55 · 360 x 800] #1 3줄 줄바꿈 · #5 하단 3개 CTA 위로(크기 유지) · #6 카드 본문 타이틀 바로 아래 시작 */
+@media (max-width:390px) and (min-height:760px) and (max-height:840px) {
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--coupon { top:337.4px; }
+  .section5-benefits__visuals .section5-phone--onnuri { top:325.4px; }
+  /* 대표 이미지와 브랜드 영상 — 둘 다 위로 20px, 서로 바깥쪽으로 더 벌린다 (크기·회전 무변경) */
+  .section5-benefits__visuals .section5-phone--national { translate:-52px -20px; }
+  .section5-benefits__visuals .section5-phone--brand { translate:18px -20px; }
+
+  /* 카드 본문: 타이틀 밴드(40px) 바로 아래 6px 에서 시작 (폰트·카드높이·아이콘 무변경) */
+  .manager-support__card p { top:46px; line-height:20.5px; }
+  /* #1 정산 질문: 「내 통장엔 / 얼마가 남을까?」 로 끊기게 — 마지막 줄 외톨이 낱말을 피하는 줄바꿈 (문구·글꼴 무변경) */
+  .pain__item p:has(.pain__settlement-question-default) { text-wrap:pretty; }
+}
+
+/* [Surface Duo · 540 x 720] 폭은 태블릿급인데 높이가 낮은 화면 전용 보정.
+   기존 low-height 블록은 max-height:700px 이라 720 에 안 걸려 일반 모바일 규칙만 받고 있었다. */
+@media (min-width:500px) and (max-width:600px) and (min-height:680px) and (max-height:780px) {
+  /* #0 Hero: 카피와 라이더를 키우고 서로/CTA 와 간격을 다시 잡는다 */
+  .hero-line-top { font-size:75.5px; }
+  .hero-line-main { font-size:96.8px; }
+  .hero-rider { height:193px; min-height:0; max-height:none; bottom:92px; }
+
+  /* #1 · #2: 캐릭터가 마지막 문구를 덮던 것 — 아래로 내리고 소폭 축소 (텍스트 무수정) */
+  .empathy-visual { height:232px; bottom:28px; }
+  .empathy-visual__media { height:100%; }
+
+  /* #3: 첫 문장이 Header 에 잘리던 것 — 본문 컨테이너만 아래로 (font-size 무수정) */
+  .pain__bridge { transform:translateY(-104px); }
+
+  /* #4: 세로 영상이 cover 로 상하 336px 씩 잘리던 것 — contain 으로 전체 노출 + CTA 위까지만 */
+  .owner-benefits__mobile-video { object-fit:contain; height:656px; }
+
+  /* #5: 하단 3개가 화면 밖(774px)까지 내려가 CTA 에 136px 덮이던 것 — 위로 올리고 소폭 축소 */
+  /* 대표 이미지: 10% 축소 + 10도 기울임 + 중앙 쪽으로 */
+  .section5-benefits__visuals .section5-phone--national {
+    top:-49.15px; left:47.28px; width:255.15px;
+    rotate:10deg; transform-origin:center; scale:none; translate:none;
+  }
+  /* 브랜드 영상: 10% 축소 + 중앙 쪽으로 (대표와 겹침 0) */
+  .section5-benefits__visuals .section5-phone--brand {
+    top:1.6px; bottom:auto; left:309.7px; right:auto; width:174.15px;
+  }
+  /* 하단 혜택: 숨어 있던 휴게소를 되살려 4개를 한 줄에 균등 배치 */
+  .section5-benefits__visuals .section5-phone--local,
+  .section5-benefits__visuals .section5-phone--onnuri,
+  .section5-benefits__visuals .section5-phone--coupon,
+  .section5-benefits__visuals .section5-phone--rest {
+    display:block; position:absolute; top:289.6px; bottom:auto; right:auto;
+    width:25%; height:190px; transform:none;
+  }
+  .section5-benefits__visuals .section5-phone--local { left:0; }
+  .section5-benefits__visuals .section5-phone--onnuri { left:25%; }
+  .section5-benefits__visuals .section5-phone--coupon { left:50%; }
+  .section5-benefits__visuals .section5-phone--rest { left:75%; }
+  .section5-benefits__visuals .section5-phone--local .section5-phone__screen,
+  .section5-benefits__visuals .section5-phone--onnuri .section5-phone__screen,
+  .section5-benefits__visuals .section5-phone--coupon .section5-phone__screen,
+  .section5-benefits__visuals .section5-phone--rest .section5-phone__screen {
+    position:absolute; top:0; right:0; left:0; width:100%; height:190px;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .section5-benefits__visuals .section5-phone--local .section5-phone__screen img,
+  .section5-benefits__visuals .section5-phone--onnuri .section5-phone__screen img,
+  .section5-benefits__visuals .section5-phone--coupon .section5-phone__screen img,
+  .section5-benefits__visuals .section5-phone--rest .section5-phone__screen img {
+    width:auto; height:190px; max-width:none; max-height:190px; object-fit:contain;
+  }
+
+  /* #3: 라이더 오른쪽 하단 배치 · 154px(+10%) · 노란 문구와 CTA 사이 (문구 무수정) */
+  .pain--bridge .pain__bridge-rider { left:auto; right:12px; bottom:77px; height:154px; transform:none; }
+
+  /* #6: 가로가 넓은 화면이라 1x4 를 2x2 로 바꾼다. 카드 폭 232px · 좌우 바깥 여백 30px.
+     아이콘은 태블릿처럼 카드 오른쪽 아래로 내려 설명이 카드 폭을 온전히 쓰게 한다. */
+  .manager-support__inner { width:calc(100% - 60px); padding-top:118px; }
+  /* container-type:size 가 걸려 있어 높이가 자식으로 안 잡힌다 — 2행＋gap 을 직접 지정 */
+  .manager-support__steps { flex:0 0 400px; align-content:start; grid-template-columns:repeat(2,1fr); grid-template-rows:repeat(2,192px); gap:16px; }
+  /* 세로 배분: 카피 묶음을 헤더 쪽으로 20px 올리고 카드를 9px 올려 위아래 간격을 24px 로 맞춘다.
+     translate 는 자리를 차지하지 않아 하단 카피와 CTA 는 그대로 남는다. */
+  .manager-support__header { translate:0 -20px; }
+  .manager-support__steps { translate:0 -9px; }
+  .manager-support__card p { top:46px; line-height:20.5px; }
+  .manager-support__card p::before { display:none; }  /* 아이콘이 내려가 첫 줄이 피할 자리가 없다 */
+  .manager-support__card h3 { padding-right:10px; }   /* 아이콘 자리를 비우던 여백 회수 */
+  .manager-support__illustration { top:auto; bottom:10px; width:60px; height:60px; transform:none; }
+  .manager-support__illustration svg { width:50px; height:50px; }
+  /* 세로 연결용 원형 화살표를 2x2 방향 표시로 (01 → 02 · 02 ↙ 03 · 03 → 04) */
+  .manager-support__card:not(:last-child)::after { content:"→"; top:50%; right:-8px; left:auto; width:auto; height:auto; border-radius:0; background:none; box-shadow:none; color:#f15a24; font-size:20px; transform:translate(50%,-50%); }
+  .manager-support__card:nth-child(2)::after { content:"↙"; top:calc(100% + 8px); right:auto; left:-8px; transform:translate(-50%,-50%); }
+  .manager-support__closing { font-size:16.5px; line-height:22.3px; translate:0 6px; }
+}
+
+/* [Zenbook Fold 세로 · 853 x 1280] 태블릿 세로 공통값으로는 #6 이 위로 몰리고 CTA 앞이 293px 비어
+   이 해상도에서만 세로 배분을 다시 잡는다. 768/960/984/1032 는 이 폭에 안 걸린다. */
+@media (min-width:800px) and (max-width:899px) and (orientation:portrait) {
+  /* #0 Hero: 라이더가 화면에 비해 작아 30% 확대 (220 -> 286px) · CTA 위로 살짝 올린다 */
+  .hero-rider { height:286px; min-height:0; max-height:none; bottom:100px; }
+
+  /* #6: 위쪽 몰림 해소 — 시작점을 내리고 카드 세로와 간격을 소폭 키워 CTA 까지 이어지게 한다 */
+  .manager-support__inner { padding:230px 0 136px; }
+  .manager-support__steps { grid-template-rows:repeat(2,minmax(300px,auto)); gap:60px 32px; }
+  .manager-support__card:nth-child(2)::after { top:calc(100% + 30px); }
+  .manager-support__closing { margin-top:40px; }
+}
+
+/* #6 content sizing: keep the card group in flow and reserve the shared fixed CTA.
+   cqh was used only for connector placement; connectors now use the actual row gap. */
+.manager-support__steps { container-type:normal; flex-shrink:0; }
+.manager-support__header, .manager-support__closing { flex-shrink:0; }
+
+@media (max-width:600px) {
+  .manager-support__inner { --manager-gap:clamp(10px,calc((100svh - 740px) * .2),36px); padding-bottom:calc(99px + env(safe-area-inset-bottom,0px)); }
+  .manager-support__steps { flex:1 0 auto; min-height:min-content; grid-template-rows:repeat(4,minmax(min-content,1fr)); align-content:stretch; row-gap:var(--manager-gap); }
+  .manager-support__card { --manager-body-top:56px; padding-top:0; grid-template-rows:var(--manager-body-top) auto; row-gap:0; align-content:start; }
+  .manager-support__number { align-self:start; margin-top:10px; }
+  .manager-support__card h3 { align-self:start; margin-top:12px; }
+  .manager-support__card p { position:relative; inset:auto; grid-column:1 / -1; grid-row:2; align-self:start; padding-bottom:0; }
+  .manager-support__card:not(:last-child)::after { top:calc(100% + 1px + var(--manager-gap) / 2); width:clamp(6px,calc(var(--manager-gap) - 8px),24px); height:clamp(6px,calc(var(--manager-gap) - 8px),24px); }
+  .manager-support__closing { height:auto; translate:none; }
+}
+
+/* Below 780px, four full 120px cards plus copy and CTA cannot fit.
+   Compress whitespace first; retain the existing compact typography below 700px. */
+@media (max-width:499px) and (max-height:780px) {
+  .manager-support__inner { --manager-gap:clamp(10px,calc((100svh - 600px) * .1),18px); padding-top:64px; padding-bottom:calc(82px + env(safe-area-inset-bottom,0px)); }
+  .manager-support__header p { margin-top:1px; }
+  .manager-support__steps { margin-top:8px; }
+  .manager-support__closing { margin-top:8px; }
+}
+@media (max-width:600px) and (max-height:700px) {
+  .manager-support__card { --manager-body-top:46px; }
+  .manager-support__number { margin-top:7px; }
+  .manager-support__card h3 { margin-top:9px; }
+}
+@media (max-width:390px) and (min-height:760px) and (max-height:840px) {
+  .manager-support__card { --manager-body-top:45px; }
+}
+
+/* Keep the approved wide-mobile 232x192 composition; replace translations with flow. */
+@media (min-width:500px) and (max-width:600px) and (min-height:680px) and (max-height:780px) {
+  .manager-support__inner { padding-top:98px; }
+  .manager-support__header, .manager-support__steps { translate:none; }
+  .manager-support__steps { flex:0 0 auto; margin-top:24px; grid-template-rows:repeat(2,minmax(192px,auto)); gap:16px; }
+  .manager-support__card { --manager-body-top:45px; }
+  .manager-support__card p { padding-bottom:70px; }
+  .manager-support__card:not(:last-child)::after { top:50%; width:auto; height:auto; }
+  .manager-support__card:nth-child(2)::after { top:calc(100% + 8px); }
+  .manager-support__closing { margin-top:24px; }
+}
+
+/* Desktop: the header and closing occupy their real, untranslated positions. */
+@media (min-width:1101px) {
+  .manager-support__inner { padding-top:128px; padding-bottom:calc(124px + env(safe-area-inset-bottom,0px)); justify-content:flex-start; }
+  .manager-support__header { transform:none; }
+  .manager-support__closing { margin-top:20px; }
+}
+
+/* Four readable 240px+ columns at low landscape heights: compact the card's
+   icon/number row rather than clipping body text or moving the shared CTA. */
+@media (min-width:1101px) and (max-height:700px) and (orientation:landscape) {
+  .manager-support__inner { padding-top:122px; }
+  .manager-support__header h2 { font-size:34px; letter-spacing:-1.7px; }
+  .manager-support__header p { margin-top:6px; font-size:17px; }
+  .manager-support__steps { margin-top:12px; gap:24px; grid-auto-rows:minmax(min-content,1fr); }
+  .manager-support__card { height:auto; min-height:0; padding:12px 16px; display:grid; grid-template-columns:1fr 76px; grid-template-rows:auto auto auto; align-content:start; }
+  .manager-support__number { grid-column:1; grid-row:1; align-self:center; font-size:40px; }
+  .manager-support__illustration { grid-column:2; grid-row:1; width:76px; height:58px; margin:0; }
+  .manager-support__illustration svg { width:73px; height:58px; }
+  .manager-support__card h3 { grid-column:1 / -1; grid-row:2; margin-top:6px; font-size:23px; }
+  .manager-support__card p { grid-column:1 / -1; grid-row:3; margin-top:8px; font-size:17px; line-height:1.4; }
+  .manager-support__closing { margin-top:12px; font-size:24px; }
+  .manager-support__card:not(:last-child)::after { right:-12px; }
+  .section6-mascot { display:none; }
+}
+
+/* Tablet cards: body and icon contribute to the minimum row size. The existing
+   260/288/300/350px approved row sizes remain minimums, not clipping limits. */
+@media (min-width:601px) and (max-width:1100px) and (orientation:portrait),
+       (min-width:900px) and (max-width:1100px) and (min-height:950px) and (max-height:1050px) and (orientation:landscape) {
+  .manager-support__inner { padding-bottom:max(124px,env(safe-area-inset-bottom,0px)); }
+  .manager-support__card { display:flex; flex-direction:column; }
+  .manager-support__number { flex-shrink:0; }
+  .manager-support__card p { position:static; margin-top:29px; flex-shrink:0; }
+  .manager-support__illustration { position:static; order:1; flex-shrink:0; align-self:flex-end; margin-top:auto; }
+}
+@media (min-width:900px) and (max-width:1100px) and (orientation:portrait),
+       (min-width:900px) and (max-width:1100px) and (min-height:950px) and (max-height:1050px) and (orientation:landscape) {
+  .manager-support__card p { margin-top:39px; }
+}
+@media (min-width:900px) and (max-width:1100px) and (max-height:1150px) and (orientation:portrait),
+       (min-width:900px) and (max-width:1100px) and (min-height:950px) and (max-height:1050px) and (orientation:landscape) {
+  .manager-support__card p { margin-top:31px; }
+}
+
+/* #5: mobile visuals share the space above the unchanged fixed CTA.
+   Size containment here bounds scalable image rows, not intrinsic text content. */
+@media (max-width:499px) {
+  .section5-benefits { top:64px; bottom:calc(86px + env(safe-area-inset-bottom,0px)); padding:18px 12px 0; overflow:visible; }
+  .section5-benefits__copy { align-self:center; width:max-content; max-width:100%; }
+  .section5-benefits__copy h2, .section5-benefits__copy p { width:max-content; max-width:none; position:relative; left:50%; translate:-50% 0; }
+  .section5-benefits__visuals { position:relative; inset:auto; width:100%; height:auto; flex:1 1 0; min-height:0; margin:12px 0 0; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); grid-template-rows:minmax(0,1.6fr) minmax(0,1fr); gap:12px 4px; transform:none; container-type:size; }
+  .section5-benefits__visuals .section5-phone { position:relative; inset:auto; width:100%; height:100%; min-width:0; min-height:0; scale:none; rotate:none; translate:none; transform:none; display:grid; place-items:center; }
+  .section5-benefits__visuals .section5-phone--national { grid-column:1 / 8; grid-row:1; }
+  .section5-benefits__visuals .section5-phone--brand { grid-column:8 / 13; grid-row:1; width:min(100%,calc((100cqh - 12px) * .6153846 * .57)); height:auto; aspect-ratio:.57; justify-self:center; align-self:center; }
+  .section5-benefits__visuals .section5-phone--local { grid-column:1 / 5; grid-row:2; }
+  .section5-benefits__visuals .section5-phone--onnuri { grid-column:5 / 9; grid-row:2; }
+  .section5-benefits__visuals .section5-phone--coupon { grid-column:9 / 13; grid-row:2; }
+  .section5-benefits__visuals .section5-phone--rest { display:none; }
+  .section5-benefits__visuals .section5-phone--asset .section5-phone__screen { position:static; inset:auto; width:100%; height:100%; padding:0; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr); place-items:center; }
+  .section5-benefits__visuals .section5-phone--asset .section5-phone__screen img { width:100%; height:100%; max-width:100%; max-height:100%; min-width:0; min-height:0; object-fit:contain; rotate:none; translate:none; transform:none; }
+}
+
+/* #5 desktop/landscape: 대표 이미지를 중심축으로 삼는 콜라주.
+   칸을 균등하게 나누면 대표가 투명 여백 때문에 작아 보이므로, 각 칸을 이미지의
+   실제 폭에 맞추고 영상/보조는 대표보다 낮은 높이로 고정한다. CTA 예약선은 그대로. */
+@media (min-width:1101px) and (orientation:landscape) {
+  .section5-benefits { top:128px; bottom:calc(124px + env(safe-area-inset-bottom,0px)); width:calc(100% - 64px); display:flex; flex-direction:column; }
+  .section5-benefits__copy { position:static; width:100%; flex:0 0 auto; }
+  .section5-benefits__visuals { position:relative; inset:auto; width:100%; height:auto; min-height:0; flex:1 1 0; margin-top:16px; display:grid; grid-template-columns:repeat(4,auto); grid-template-rows:repeat(2,minmax(0,1fr)); gap:12px 22px; justify-content:center; justify-items:center; align-items:center; transform:none; container-type:size; }
+  .section5-benefits__visuals .section5-phone { position:relative; inset:auto; min-width:0; min-height:0; width:auto; height:100%; scale:none; rotate:none; translate:none; transform:none; display:grid; place-items:center; }
+  /* 2순위 — 대표의 74% 높이로 묶어두고 대표 쪽 모서리에 붙인다 */
+  .section5-benefits__visuals .section5-phone--brand { grid-column:1; grid-row:1 / 3; width:auto; height:74%; aspect-ratio:.57; justify-self:end; align-self:center; }
+  /* 1순위 — 쓸 수 있는 높이를 전부 쓰고 영상 쪽에 붙어 한 그룹으로 읽히게 한다 */
+  .section5-benefits__visuals .section5-phone--national { grid-column:2; grid-row:1 / 3; height:100%; justify-self:start; }
+  /* 3순위 — 한 행의 86%까지만 */
+  .section5-benefits__visuals .section5-phone--local { grid-column:3; grid-row:1; height:86%; }
+  .section5-benefits__visuals .section5-phone--onnuri { grid-column:4; grid-row:1; height:86%; }
+  .section5-benefits__visuals .section5-phone--coupon { grid-column:3; grid-row:2; height:86%; }
+  .section5-benefits__visuals .section5-phone--rest { grid-column:4; grid-row:2; height:86%; }
+  .section5-benefits__visuals .section5-phone--asset .section5-phone__screen { position:static; inset:auto; width:auto; height:100%; padding:0; display:block; }
+  .section5-benefits__visuals .section5-phone--asset .section5-phone__screen img { width:auto; height:100%; max-width:none; max-height:100%; min-width:0; min-height:0; object-fit:contain; transform:none; }
+}
+/* 낮은 가로: 높이가 모자라 한 줄로 두되, 균등 분배 대신 계단식 크기로 위계를 만든다.
+   카피를 조금 좁혀 이미지가 쓸 높이를 벌고, CTA 예약선 위에서 끝나게 한다. */
+@media (min-width:1101px) and (max-height:700px) and (orientation:landscape) {
+  /* 칸 높이를 컨테이너 비율(%)로 주면 행이 내용에 밀려 CTA를 침범한다.
+     화면 높이에서 헤더·카피·CTA 몫(315px)을 뺀 값을 대표 높이로 직접 주고,
+     영상과 보조는 그 값의 비율로 따라간다. */
+  /* 카피가 위에 있으면 이미지가 쓸 높이가 270px밖에 안 남는다.
+     카피를 왼쪽 단으로 빼서 헤더~CTA 사이 높이를 이미지가 통째로 쓰게 한다. */
+  .section5-benefits { top:120px; bottom:auto; height:calc(100svh - 238px); flex-direction:row; align-items:center; gap:26px; --s5-low:calc(100svh - 238px); }
+  .section5-benefits__copy { flex:0 0 400px; align-self:center; }
+  .section5-benefits__copy h2 { font-size:30px; line-height:1.2; letter-spacing:-1.5px; white-space:nowrap; }
+  .section5-benefits__copy h2 span { white-space:nowrap; }
+  .section5-benefits__copy p { margin-top:10px; font-size:15px; line-height:1.5; white-space:normal; }
+  .section5-benefits__visuals { margin-top:0; flex:1 1 0; align-self:start; height:calc(100svh - 205px); container-type:normal; grid-template-columns:repeat(4,auto); grid-template-rows:auto auto; align-items:center; justify-items:center; gap:8px 20px; }
+  /* 왼쪽 = 영상(2순위) · 가운데 = 대표(1순위) · 오른쪽 = 보조 2x2(3순위) */
+  .section5-benefits__visuals .section5-phone--brand { grid-column:1; grid-row:1 / 3; height:calc(var(--s5-low) * .66); align-self:start; margin-top:calc(var(--s5-low) * .17); }
+  .section5-benefits__visuals .section5-phone--national { grid-column:2; grid-row:1 / 3; height:var(--s5-low); align-self:start; }
+  .section5-benefits__visuals .section5-phone--local { grid-column:3; grid-row:1; height:calc((100svh - 213px) / 2); margin-left:40px; }
+  .section5-benefits__visuals .section5-phone--onnuri { grid-column:4; grid-row:1; height:calc((100svh - 213px) / 2); }
+  .section5-benefits__visuals .section5-phone--coupon { grid-column:3; grid-row:2; height:calc((100svh - 213px) / 2); margin-left:40px; }
+  .section5-benefits__visuals .section5-phone--rest { grid-column:4; grid-row:2; height:calc((100svh - 213px) / 2); }
+}
+
+/* 낮고 덜 길쭉한 모바일(세로비 0.49 이상)에서는 대표와 영상이 같은 행 높이를 그대로
+   나눠 갖게 되어 둘이 같은 크기로 보인다. 영상만 행 높이의 일부로 묶어 대표를 1순위로
+   되돌린다. 세로비 0.46 이하인 길쭉한 화면(360x800 등)은 이 조건에 걸리지 않는다. */
+@media (max-width:499px) and (min-aspect-ratio:49/100) {
+  .section5-benefits__visuals .section5-phone--brand { width:auto; max-width:100%; height:82%; }
+}
+
+/* #3 브리지: 헤더 침범 보정.
+   모바일 기본값(translateY(-155px))은 높이 700 이하에서는 별도 블록이, 900 이상에서는
+   translate 보정이 받쳐주는데 그 사이 구간만 비어 있어 첫 문구가 헤더 아래로 파고든다.
+   폭 500~600(540x720 등)은 자체 보정값이 있으므로 제외한다. */
+@media (max-width:499px) and (min-height:701px) and (max-height:899px) {
+  .pain__bridge { transform:translateY(-115px); gap:16px; }
+  /* 문구가 헤더를 피해 내려온 만큼 라이더도 아래로 비켜 노란 문구와 겹치지 않게 한다 */
+  .pain--bridge .pain__bridge-rider { bottom:74px; height:158px; }
+}
+/* 넓고 아주 낮은 가로(1204x575 등): 브리지가 헤더 아래에서 시작하도록 내린다.
+   같은 폭이라도 높이 620 초과(1280x800 등)는 여유가 있어 걸리지 않는다. */
+@media (min-width:1200px) and (max-width:1300px) and (max-height:620px) and (orientation:landscape) {
+  .pain__bridge { translate:0 16px; }
+}
+
+/* #6 극저높이 대응.
+   .screen 의 모바일 최소 높이는 620px 이라 뷰포트가 그보다 낮으면 섹션 아래가 화면 밖으로
+   밀리고, 남은 카드와 하단 카피가 고정 CTA 아래에 가린다.
+   이 구간에서만 #6 안쪽을 스크롤할 수 있게 한다. 콘텐츠가 다 들어가면 height:auto 라
+   스크롤이 생기지 않아 기존 화면과 같게 보인다. (620px 이상 화면은 이 블록에 걸리지 않는다) */
+@media (max-width:600px) and (max-height:620px) {
+  .manager-support__inner { height:auto; max-height:calc(100svh - 82px); overflow-y:auto; overscroll-behavior-y:contain; }
 }

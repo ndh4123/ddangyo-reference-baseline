@@ -3,8 +3,21 @@ import { Header } from './components/Header';
 
 const sectionCount = 9;
 const mobileHeroQuery = '(max-width: 600px)';
+const lowLandscapeQuery = '(min-width: 1200px) and (max-width: 1300px) and (max-height: 850px) and (orientation: landscape)';
+const tabletPortraitQuery = '(min-width: 601px) and (max-width: 1100px) and (orientation: portrait)';
+const foldLandscapeQuery = '(min-width: 900px) and (max-width: 1100px) and (min-height: 950px) and (max-height: 1050px) and (orientation: landscape)';
+const largeTabletPortraitQuery = '(min-width: 900px) and (max-width: 1100px) and (orientation: portrait)';
+// iOS/Safari 는 WebM 의 알파를 살리지 못해 라이더가 검은 사각형으로 보인다.
+// 그쪽에서는 같은 그림을 투명 배경 애니메이션 WebP 로 대신 보여준다.
+const isAppleWebKit = /iP(hone|ad|od)/.test(navigator.userAgent)
+  || (/Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|OPR/.test(navigator.userAgent));
 const mobileOwnerBenefitVideoSrc = '/videos/mobile-free-explosion-v7.mp4';
 const desktopOwnerBenefitVideoSrc = '/videos/pc-explosion-final.mp4';
+// #4 효과음 음량 통일: 두 영상 파일의 실측 라우드니스(상위 10% 구간 RMS)가 달라
+// mobile-free-explosion-v7 = 0.29826, pc-explosion-final = 0.09931 (PC 쪽이 9.55dB 더 작다).
+// 현재 가장 작게 들리는 태블릿 세로(모바일영상 x 0.126)를 기준으로 나머지를 낮춘다.
+const ownerBenefitMobileVideoVolume = 0.126;   // mobile-free-explosion-v7.mp4 (모바일 / 태블릿 세로 공용)
+const ownerBenefitDesktopVideoVolume = 0.3784; // pc-explosion-final.mp4 (원본이 작아 계수는 크다)
 
 const mobileOwnerBenefitSteps = Array.from(
   { length: 8 },
@@ -122,6 +135,10 @@ function App() {
   });
   const [heroMuted, setHeroMuted] = useState(true);
   const [useMobileHeroVideo, setUseMobileHeroVideo] = useState(() => window.matchMedia(mobileHeroQuery).matches);
+  const [isTabletPortrait, setIsTabletPortrait] = useState(() => window.matchMedia(tabletPortraitQuery).matches);
+  // #3 라이더가 걸리는 가로 조건. 렌더 중 matchMedia 를 직접 읽으면 화면이 바뀌어도
+  // 리렌더가 일어나지 않아 라이더가 남거나 안 나타난다(stale). 그래서 state 로 둔다.
+  const [isRiderLandscape, setIsRiderLandscape] = useState(() => window.matchMedia(lowLandscapeQuery).matches || window.matchMedia(foldLandscapeQuery).matches);
   const useMobileOwnerBenefitVideo = useMobileHeroVideo && Boolean(mobileOwnerBenefitVideoSrc);
   const [empathySteps, setEmpathySteps] = useState<Record<number, number>>({ 1: 0, 2: 0, 3: 0 });
   const [ownerBenefitStep, setOwnerBenefitStep] = useState(0);
@@ -134,6 +151,7 @@ function App() {
   const [deliveryAppsError, setDeliveryAppsError] = useState(false);
   const [deliveryAppsAlerting, setDeliveryAppsAlerting] = useState(false);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const heroRiderRef = useRef<HTMLVideoElement>(null);
   const mobileOwnerBenefitVideoRef = useRef<HTMLVideoElement>(null);
   const desktopOwnerBenefitVideoRef = useRef<HTMLVideoElement>(null);
   const mobileFreeVideoEndedRef = useRef(false);
@@ -169,7 +187,10 @@ function App() {
   const ownerBenefitBurstAudioGainsRef = useRef<GainNode[]>([]);
   const faqScrollRef = useRef<HTMLDivElement>(null);
   const consultationPageRef = useRef<HTMLElement>(null);
-  const screenNavigationRef = useRef<(screen: number) => void>(() => undefined);
+  const managerScrollRef = useRef<HTMLDivElement>(null);
+  const screenNavigationRef = useRef<(screen: number, immediate?: boolean) => void>(() => undefined);
+  const consultationCtaTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const topTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const playCtaScrollReaction = () => {
     if (activeRef.current === 8) return;
@@ -418,12 +439,48 @@ function App() {
     video.muted = shouldMuteHero;
     if (!shouldMuteHero) void video.play().catch(() => undefined);
   }, [active, heroMuted]);
+  useEffect(() => {
+    // Hero 라이더(소리 없는 webm)는 탭이 가려지면 크롬이 멈추고, 돌아와도 안 살아나는 경우가 있다.
+    // 보이는 상태에서 멈춰 있으면 다시 재생한다 (autoplay·loop·muted 는 그대로).
+    const rider = heroRiderRef.current;
+    if (!rider) return;
+    const resumeRider = () => {
+      if (document.visibilityState !== 'visible' || !rider.paused) return;
+      void rider.play().catch(() => undefined);
+    };
+    resumeRider();
+    rider.addEventListener('pause', resumeRider);
+    document.addEventListener('visibilitychange', resumeRider);
+    return () => {
+      rider.removeEventListener('pause', resumeRider);
+      document.removeEventListener('visibilitychange', resumeRider);
+    };
+  }, [active]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(mobileHeroQuery);
     const syncHeroVideo = (event: MediaQueryListEvent) => setUseMobileHeroVideo(event.matches);
     mediaQuery.addEventListener('change', syncHeroVideo);
     return () => mediaQuery.removeEventListener('change', syncHeroVideo);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(tabletPortraitQuery);
+    const syncTabletPortrait = (event: MediaQueryListEvent) => setIsTabletPortrait(event.matches);
+    mediaQuery.addEventListener('change', syncTabletPortrait);
+    return () => mediaQuery.removeEventListener('change', syncTabletPortrait);
+  }, []);
+
+  useEffect(() => {
+    const lowQuery = window.matchMedia(lowLandscapeQuery);
+    const foldQuery = window.matchMedia(foldLandscapeQuery);
+    const syncRiderLandscape = () => setIsRiderLandscape(lowQuery.matches || foldQuery.matches);
+    lowQuery.addEventListener('change', syncRiderLandscape);
+    foldQuery.addEventListener('change', syncRiderLandscape);
+    return () => {
+      lowQuery.removeEventListener('change', syncRiderLandscape);
+      foldQuery.removeEventListener('change', syncRiderLandscape);
+    };
   }, []);
 
   useEffect(() => {
@@ -443,7 +500,7 @@ function App() {
     let cancelled = false;
     video.pause();
     if (useMobileOwnerBenefitVideo && active === 4) {
-      video.volume = 0.18;
+      video.volume = ownerBenefitMobileVideoVolume;
       video.currentTime = 0;
       video.muted = false;
       void video.play().catch((error: unknown) => {
@@ -477,6 +534,7 @@ function App() {
       let cancelled = false;
       desktopFreeVideoEndedRef.current = false;
       if (video) {
+        video.volume = isTabletPortrait ? ownerBenefitMobileVideoVolume : ownerBenefitDesktopVideoVolume;
         video.currentTime = 0;
         video.muted = false;
         void video.play().catch((error: unknown) => {
@@ -553,7 +611,7 @@ function App() {
       ownerBenefitAutoTimerRef.current = null;
       ownerBenefitCtaTimerRef.current = null;
     };
-  }, [active, useMobileHeroVideo, useMobileOwnerBenefitVideo]);
+  }, [active, useMobileHeroVideo, useMobileOwnerBenefitVideo, isTabletPortrait]);
 
   useEffect(() => {
     const sections = [...document.querySelectorAll<HTMLElement>('[data-screen]')];
@@ -564,6 +622,7 @@ function App() {
     sections[initial]?.scrollIntoView({ behavior: 'auto', block: 'start' });
     requestAnimationFrame(() => { document.documentElement.style.scrollBehavior = previousScrollBehavior; });
 
+    let immediateNavigationFrame: number | null = null;
     const observer = new IntersectionObserver((entries) => {
       const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
       if (!visible) return;
@@ -612,10 +671,14 @@ function App() {
       }, 320);
     };
 
-    const go = (next: number, entryDirection = 0, forceNavigation = false) => {
+    const go = (next: number, entryDirection = 0, forceNavigation = false, immediate = false) => {
       const index = Math.min(Math.max(next, 0), sections.length - 1);
       if (!forceNavigation && (index === activeRef.current || screenLockedRef.current)) return;
-      if (activeRef.current === 8 && index !== 8 && consultationPageRef.current) {
+      if (immediateNavigationFrame !== null) {
+        cancelAnimationFrame(immediateNavigationFrame);
+        immediateNavigationFrame = null;
+      }
+      if (((activeRef.current === 8 && index !== 8) || (immediate && index === 8)) && consultationPageRef.current) {
         consultationPageRef.current.scrollTop = 0;
       }
       if (index === 4 && !useMobileHeroVideoRef.current && !desktopOwnerBenefitVideoSrc) {
@@ -639,10 +702,18 @@ function App() {
       activeRef.current = index;
       setActive(index);
       history.replaceState(null, '', `#${index}`);
-      sections[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (immediate) window.scrollTo({ top: window.scrollY, behavior: 'instant' });
+      sections[index]?.scrollIntoView({ behavior: immediate ? 'instant' : 'smooth', block: 'start' });
+      if (immediate) {
+        immediateNavigationFrame = requestAnimationFrame(() => {
+          immediateNavigationFrame = null;
+          if (index === 8 && consultationPageRef.current) consultationPageRef.current.scrollTop = 0;
+          sections[index]?.scrollIntoView({ behavior: 'instant', block: 'start' });
+          if (index === 0) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        });
+      }
     };
-
-    screenNavigationRef.current = (screen) => go(screen, 0, true);
+    screenNavigationRef.current = (screen, immediate = false) => go(screen, 0, true, immediate);
 
     const consumeEmpathyStep = (direction: -1 | 1) => {
       const screen = activeRef.current;
@@ -745,7 +816,7 @@ function App() {
       }
       const faqScroller = faqScrollRef.current;
       const faqTarget = event.target instanceof Node && faqScroller?.contains(event.target);
-      if (activeRef.current === 7 && !useMobileHeroVideoRef.current && faqScroller && faqTarget) {
+      if (activeRef.current === 7 && faqScroller && faqTarget) {
         const maxScrollTop = faqScroller.scrollHeight - faqScroller.clientHeight;
         const canScroll = direction > 0
           ? faqScroller.scrollTop < maxScrollTop - 1
@@ -775,6 +846,20 @@ function App() {
     let ownerBenefitTouchStartY: number | null = null;
     let ownerBenefitTouchStartedBeforeVideoEnd = false;
     let empathyTouchStart: { x: number; y: number; screen: number } | null = null;
+    // #6/#7/#8 은 화면 안쪽이 스크롤된다. overscroll-behavior:contain 때문에 끝에 닿아도
+    // 스크롤이 바깥으로 전달되지 않으므로, 경계에서만 섹션 이동을 직접 이어준다.
+    let scrollerTouch: { x: number; y: number; screen: number; atTop: boolean; atBottom: boolean; scrollable: boolean } | null = null;
+    const SCROLL_EDGE_EPSILON = 2;
+    const scrollerFor = (screen: number): HTMLElement | null => {
+      if (!useMobileHeroVideoRef.current) return null;
+      if (screen === 6) return managerScrollRef.current;
+      if (screen === 7) return faqScrollRef.current;
+      if (screen === 8) return consultationPageRef.current;
+      return null;
+    };
+    const canScrollInside = (el: HTMLElement) => el.scrollHeight > el.clientHeight + SCROLL_EDGE_EPSILON;
+    const isAtTop = (el: HTMLElement) => el.scrollTop <= SCROLL_EDGE_EPSILON;
+    const isAtBottom = (el: HTMLElement) => el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_EDGE_EPSILON;
     const onTouchStart = (event: TouchEvent) => {
       empathyTouchStart = null;
       if (useMobileHeroVideoRef.current && activeRef.current >= 1 && activeRef.current <= 3) {
@@ -782,6 +867,23 @@ function App() {
         if (event.target instanceof Element && event.target.closest('a, button, input, textarea, select')) return;
         empathyTouchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY, screen: activeRef.current };
         return;
+      }
+      scrollerTouch = null;
+      const scroller = scrollerFor(activeRef.current);
+      if (scroller && event.touches.length === 1) {
+        const scrollable = canScrollInside(scroller);
+        // #6 은 내부 스크롤이 실제로 생긴 낮은 화면에서만 이 경로를 쓴다(기존 동작 보존).
+        if (activeRef.current !== 6 || scrollable) {
+          scrollerTouch = {
+            x: event.touches[0].clientX,
+            y: event.touches[0].clientY,
+            screen: activeRef.current,
+            atTop: isAtTop(scroller),
+            atBottom: isAtBottom(scroller),
+            scrollable,
+          };
+          return;
+        }
       }
       if (activeRef.current !== 4 || event.touches.length !== 1) return;
       ownerBenefitTouchStartY = event.touches[0].clientY;
@@ -822,6 +924,24 @@ function App() {
         handleDirectionalInput(deltaY > 0 ? 1 : -1);
         return;
       }
+      if (scrollerTouch) {
+        const start = scrollerTouch;
+        scrollerTouch = null;
+        const end = event.changedTouches[0];
+        if (!end || activeRef.current !== start.screen) return;
+        const deltaY = start.y - end.clientY;
+        if (Math.abs(deltaY) < 24 || Math.abs(deltaY) <= Math.abs(start.x - end.clientX)) return;
+        const direction: -1 | 1 = deltaY > 0 ? 1 : -1;
+        const scroller = scrollerFor(start.screen);
+        if (scroller && start.scrollable) {
+          // 스와이프 시작과 끝 모두 경계에 있을 때만 섹션을 넘긴다. 중간이면 내부 스크롤로 둔다.
+          const startedAtEdge = direction > 0 ? start.atBottom : start.atTop;
+          const stillAtEdge = direction > 0 ? isAtBottom(scroller) : isAtTop(scroller);
+          if (!startedAtEdge || !stillAtEdge) return;
+        }
+        handleDirectionalInput(direction);
+        return;
+      }
       if (activeRef.current !== 4 || ownerBenefitTouchStartY === null) return;
       const endY = event.changedTouches[0]?.clientY ?? ownerBenefitTouchStartY;
       const deltaY = ownerBenefitTouchStartY - endY;
@@ -831,7 +951,7 @@ function App() {
       if (deltaY > 0 && ownerBenefitTouchStartedBeforeVideoEnd) return;
       handleDirectionalInput(deltaY > 0 ? 1 : -1);
     };
-    const onTouchCancel = () => { empathyTouchStart = null; };
+    const onTouchCancel = () => { empathyTouchStart = null; scrollerTouch = null; };
     const onKey = (event: KeyboardEvent) => {
       if (
         activeRef.current === 8
@@ -874,6 +994,7 @@ function App() {
     window.addEventListener('hashchange', onHash);
     return () => {
       screenNavigationRef.current = () => undefined;
+      if (immediateNavigationFrame !== null) cancelAnimationFrame(immediateNavigationFrame);
       observer.disconnect();
       if (screenLockTimerRef.current !== null) window.clearTimeout(screenLockTimerRef.current);
       if (empathyLockTimerRef.current !== null) window.clearTimeout(empathyLockTimerRef.current);
@@ -920,6 +1041,7 @@ function App() {
     }
 
     setDeliveryAppsError(false);
+    window.alert('현재 온라인 상담 접수가 연결되지 않아 신청이 접수되지 않았습니다. 1555-1984로 전화해 주세요.');
   };
   const renderFaqItem = (item: FaqItem) => {
     const opened = openFaqId === item.id;
@@ -936,7 +1058,7 @@ function App() {
             aria-controls={answerId}
             onClick={() => setOpenFaqId(opened ? null : item.id)}
           >
-            <span><b aria-hidden="true">Q.</b>{item.question}</span>
+            <span><b aria-hidden="true">Q.</b><span className="faq-accordion__question-text">{item.question}</span></span>
             <i className="faq-accordion__icon" aria-hidden="true" />
           </button>
         </h3>
@@ -968,7 +1090,27 @@ function App() {
       <a
         className={`fixed-consult-cta ${showFixedConsultCta ? 'is-visible' : ''} ${ctaPauseScreen === active ? 'is-paused' : ''} ${ctaScrollReacting ? 'is-scroll-reacting' : ''}${useMobileOwnerBenefitVideo && active === 4 ? ' fixed-consult-cta--mobile-free' : ''}`}
         href="#8"
-        onClick={(event) => { event.preventDefault(); screenNavigationRef.current(8); }}
+        onClick={(event) => { event.preventDefault(); screenNavigationRef.current(8, useMobileHeroVideo); }}
+        onTouchStart={(event) => {
+          const touch = event.touches[0];
+          consultationCtaTouchStartRef.current = useMobileHeroVideo && event.touches.length === 1
+            ? { x: touch.clientX, y: touch.clientY } : null;
+        }}
+        onTouchCancel={() => { consultationCtaTouchStartRef.current = null; }}
+        onTouchEnd={(event) => {
+          const start = consultationCtaTouchStartRef.current;
+          consultationCtaTouchStartRef.current = null;
+          const touch = event.changedTouches[0];
+          if (!useMobileHeroVideo || !start || !touch || event.touches.length !== 0
+            || Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 12) return;
+          // A tap during native smooth scrolling can lose its synthesized click.
+          // Handle the tap here and suppress the duplicate compatibility click.
+          event.preventDefault();
+          event.stopPropagation();
+          screenNavigationRef.current(8, true);
+        }}
+
+
         aria-hidden={!showFixedConsultCta}
         tabIndex={showFixedConsultCta ? 0 : -1}
       >
@@ -991,7 +1133,28 @@ function App() {
           <a
             className={`back-to-top ${active > 0 ? 'is-visible' : ''}`}
             href="#0"
-            onClick={(event) => { event.preventDefault(); screenNavigationRef.current(0); }}
+            onClick={(event) => { event.preventDefault(); screenNavigationRef.current(0, isTabletPortrait || window.matchMedia(lowLandscapeQuery).matches || window.matchMedia(foldLandscapeQuery).matches); }}
+            onTouchStart={(event) => {
+              if (!isTabletPortrait && !window.matchMedia(lowLandscapeQuery).matches && !window.matchMedia(foldLandscapeQuery).matches) return;
+              // Explicit TOP taps must not enter the FREE video's swipe lock.
+              event.stopPropagation();
+              const touch = event.touches[0];
+              topTouchStartRef.current = event.touches.length === 1
+                ? { x: touch.clientX, y: touch.clientY } : null;
+            }}
+            onTouchCancel={() => { topTouchStartRef.current = null; }}
+            onTouchEnd={(event) => {
+              const start = topTouchStartRef.current;
+              topTouchStartRef.current = null;
+              const touch = event.changedTouches[0];
+              const useImmediateTopTap = isTabletPortrait || window.matchMedia(lowLandscapeQuery).matches || window.matchMedia(foldLandscapeQuery).matches;
+              const maxTapTravel = window.matchMedia(largeTabletPortraitQuery).matches || window.matchMedia(lowLandscapeQuery).matches || window.matchMedia(foldLandscapeQuery).matches ? 24 : 12;
+              if (!useImmediateTopTap || !start || !touch || event.touches.length !== 0
+                || Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > maxTapTravel) return;
+              event.preventDefault();
+              event.stopPropagation();
+              screenNavigationRef.current(0, true);
+            }}
             aria-label="맨 위로 이동"
             aria-hidden={active === 0}
             tabIndex={active > 0 ? 0 : -1}
@@ -1023,6 +1186,7 @@ function App() {
             <span className="hero-cta-space" aria-hidden="true" />
           </div>
           <video
+            ref={heroRiderRef}
             className="hero-rider"
             src="/animations/bora-rider-in-place-fast-hd.webm"
             autoPlay
@@ -1050,7 +1214,7 @@ function App() {
                 <h2>그럴 때 있잖아요.<br />정산서 열어볼 때.</h2>
               </div>
               <div className={`pain__item ${empathySteps[1] === 1 ? 'is-active' : ''}`} aria-current={empathySteps[1] === 1 ? 'step' : undefined}>
-                <p>오늘 받은 이 주문,<br />내 통장엔 얼마가 남을까?</p>
+                <p><span className="pain__settlement-question-default">오늘 받은 이 주문,<br />내 통장엔 얼마가 남을까?</span><span className="pain__settlement-question-small">오늘 받은 이 주문<br />내 통장엔<br />얼마가 남을까?</span></p>
               </div>
               <div className={`pain__item ${empathySteps[1] === 2 ? 'is-active' : ''}`} aria-current={empathySteps[1] === 2 ? 'step' : undefined}>
                 <p>분명 바빴는데,<br />통장엔 남는 게 없어요.</p>
@@ -1116,15 +1280,19 @@ function App() {
             <p className={`pain__bridge-step pain__bridge-line ${empathySteps[3] === 2 ? 'is-active' : ''}`} aria-current={empathySteps[3] === 2 ? 'step' : undefined}>{useMobileHeroVideo ? <>손님에겐<br />혜택이 더 돌아가는</> : '손님에겐 혜택이 더 돌아가는'}</p>
             <p className={`pain__bridge-step pain__bridge-line pain__bridge-line--final ${bridgeFinalActive ? 'is-active' : ''}`} aria-current={bridgeFinalActive ? 'step' : undefined}>{useMobileHeroVideo ? <span>이런 배달앱은<br />없을까?</span> : '이런 배달앱은 없을까?'}</p>
           </div>
-          {useMobileHeroVideo && active === 3 && bridgeFinalActive && (
-            <video className="pain__bridge-rider" src="/animations/bora-rider-in-place-fast-hd.webm" autoPlay loop muted playsInline preload="metadata" aria-hidden="true" />
+          {(useMobileHeroVideo || isTabletPortrait || isRiderLandscape) && bridgeFinalActive && (
+            isAppleWebKit ? (
+              <img className="pain__bridge-rider" src="/animations/bora-rider-in-place-fast-hd.webp" alt="" aria-hidden="true" draggable="false" />
+            ) : (
+              <video className="pain__bridge-rider" src="/animations/bora-rider-in-place-fast-hd.webm" autoPlay loop muted playsInline preload="metadata" aria-hidden="true" />
+            )
           )}
         </section>
 
         <section className={`screen owner-benefits ${active === 4 ? 'is-active' : ''}`} data-screen="4">
           <div className="owner-benefits__inner" aria-label="땡겨요 주문수수료 2%, 광고비 없음, 입점비 없음, 월이용료 없음">
             <div className="owner-benefits__stage">
-              <div className={`owner-benefits__step-stage${useMobileOwnerBenefitVideo ? ' owner-benefits__step-stage--video' : ''}`}>
+              <div className={`owner-benefits__step-stage${useMobileOwnerBenefitVideo || isTabletPortrait ? ' owner-benefits__step-stage--video' : ''}`}>
                 {useMobileOwnerBenefitVideo ? (
                   <video
                     ref={mobileOwnerBenefitVideoRef}
@@ -1157,7 +1325,7 @@ function App() {
                   <video
                     ref={desktopOwnerBenefitVideoRef}
                     className="owner-benefits__animation owner-benefits__desktop-video"
-                    src={desktopOwnerBenefitVideoSrc}
+                    src={isTabletPortrait ? mobileOwnerBenefitVideoSrc : desktopOwnerBenefitVideoSrc}
                     onEnded={() => {
                       if (activeRef.current !== 4 || useMobileHeroVideoRef.current) return;
                       desktopFreeVideoEndedRef.current = true;
@@ -1272,7 +1440,7 @@ function App() {
         </section>
 
         <section className={`screen customer-benefits manager-support ${active === 6 ? 'is-active' : ''}`} data-screen="6">
-          <div className="manager-support__inner">
+          <div className="manager-support__inner" ref={managerScrollRef}>
               <header className="manager-support__header">
                 <h2>사장님은 <strong>장사에만</strong> 집중하세요.</h2>
                 <p>{useMobileHeroVideo ? '간단한 매장 정보만 남겨주시면 끝~~' : '복잡한 입점 절차부터 장사가 더 잘되도록 돕는 맞춤 컨설팅까지 지원합니다.'}</p>
@@ -1281,7 +1449,7 @@ function App() {
                 <li className="manager-support__card">
                   <span className="manager-support__number">01</span>
                   <span className="manager-support__illustration" aria-hidden="true">
-                    <svg viewBox="0 0 120 96">
+                    <svg className="manager-support__illustration-desktop" viewBox="0 0 120 96">
                       <path className="illustration__soft" d="M74 14h27a8 8 0 0 1 8 8v18a8 8 0 0 1-8 8h-7l-8 7v-7H74a8 8 0 0 1-8-8V22a8 8 0 0 1 8-8Z" />
                       <rect className="illustration__paper" x="18" y="5" width="67" height="86" rx="12" />
                       <path className="illustration__ink" d="M39 14h25M29 28h44M29 44h44M29 60h27" />
@@ -1290,13 +1458,34 @@ function App() {
                       <circle className="illustration__main-fill" cx="91" cy="66" r="14" />
                       <path className="illustration__light" d="M84 66h13m-5-5 5 5-5 5" />
                     </svg>
+                    <svg className="manager-support__illustration-original" style={{ display: 'none' }} viewBox="0 0 64 64">
+                      <path className="illustration__paper" d="M13 5h30l8 8v43H13Z" />
+                      <path className="illustration__ink" d="M43 5v10h8M21 23h21M21 31h14" />
+                      <path className="illustration__main" d="m20 43 5 5 10-12" />
+                      <path className="illustration__main-soft" d="m39 42 11-11 5 5-11 11-8 3Z" />
+                      <path className="illustration__ink" d="m50 31 5 5" />
+                    </svg>
+                    <svg className="manager-support__illustration-mobile" viewBox="0 0 64 64">
+                      <ellipse cx="32" cy="57" rx="25" ry="4" fill="#B97036" opacity=".18" />
+                      <rect x="10" y="7" width="36" height="49" rx="5" fill="#DFA657" />
+                      <path d="M9 5h25l10 10v38H9a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Z" fill="#FFFBEA" />
+                      <path d="M34 5v10h10" fill="#F8D978" />
+                      <rect x="12" y="19" width="23" height="5" rx="2" fill="#F6B745" />
+                      <path d="M13 30h18M13 37h12" stroke="#B9A080" strokeWidth="3" strokeLinecap="round" />
+                      <path d="m28 48 4-13 19-23 9 8-20 23Z" fill="#CA4A21" />
+                      <path d="m28 48 4-13 8 8Z" fill="#FFE2AD" />
+                      <path d="m28 48 2-7 4 4Z" fill="#5B362D" />
+                      <path d="m32 35 19-23 6 5-19 23Z" fill="#F15A24" />
+                      <path d="m36 34 15-18" stroke="#FFB55D" strokeWidth="2.5" strokeLinecap="round" />
+                      <path d="m49 14 4-5q2-2 4 0l3 3q2 2 0 4l-3 4Z" fill="#F9B43F" />
+                    </svg>
                   </span>
                   <h3>입점 상담 신청</h3><p>간단한 매장 정보만 남겨주시면 끝!</p>
                 </li>
                 <li className="manager-support__card">
                   <span className="manager-support__number">02</span>
                   <span className="manager-support__illustration" aria-hidden="true">
-                    <svg viewBox="0 0 120 96">
+                    <svg className="manager-support__illustration-desktop" viewBox="0 0 120 96">
                       <path className="illustration__soft" d="M10 20h100v66H10z" />
                       <circle className="illustration__paper" cx="37" cy="35" r="13" />
                       <path className="illustration__paper" d="M14 80c3-20 11-30 23-30s20 10 23 30Z" />
@@ -1308,13 +1497,37 @@ function App() {
                       <circle className="illustration__main-fill" cx="103" cy="21" r="12" />
                       <path className="illustration__light" d="m97 21 4 4 8-9" />
                     </svg>
+                    <svg className="manager-support__illustration-original" style={{ display: 'none' }} viewBox="0 0 64 64">
+                      <circle className="illustration__paper" cx="32" cy="21" r="10" />
+                      <path className="illustration__paper" d="M14 57c2-14 8-21 18-21s16 7 18 21Z" />
+                      <path className="illustration__main" d="M16 27c0-10 7-18 16-18s16 8 16 18v12c0 6-4 10-10 10h-4" />
+                      <path className="illustration__main-soft" d="M14 27h7v13h-7zM43 27h7v13h-7z" />
+                      <path className="illustration__ink" d="M27 49h8" />
+                    </svg>
+                    <svg className="manager-support__illustration-mobile" viewBox="0 0 64 64">
+                      <ellipse cx="32" cy="58" rx="26" ry="4" fill="#B97036" opacity=".18" />
+                      <path d="M7 58v-8c0-10 11-17 25-17s25 7 25 17v8Z" fill="#F15A24" />
+                      <path d="M38 35c12 2 19 8 19 15v8H41Z" fill="#D14B22" />
+                      <path d="m24 35 8 8 8-8-3 20H27Z" fill="#FFF8DE" />
+                      <path d="M26 29h12v10l-6 5-6-5Z" fill="#F1B681" />
+                      <path d="M17 19C17 6 23 3 33 3c11 0 16 7 15 20l-5 12H20Z" fill="#633B2B" />
+                      <ellipse cx="32" cy="23" rx="12" ry="15" fill="#FFDBA9" />
+                      <path d="M20 19c3-1 8-5 10-10 4 7 9 8 15 9-1-10-7-13-13-13-8 0-13 6-12 14Z" fill="#74462E" />
+                      <path d="M16 26v-7C16 8 23 4 32 4s17 6 17 17v9" fill="none" stroke="#F8B83E" strokeWidth="5" />
+                      <rect x="12" y="21" width="8" height="14" rx="4" fill="#F15A24" />
+                      <rect x="44" y="21" width="8" height="14" rx="4" fill="#F15A24" />
+                      <path d="M48 33c0 7-6 8-13 8" fill="none" stroke="#633B2B" strokeWidth="3" />
+                      <rect x="30" y="38" width="9" height="5" rx="2.5" fill="#633B2B" />
+                      <path d="M27 24h1m8 0h1" stroke="#633B2B" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M15 48v7" stroke="#FFAD65" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
                   </span>
                   <h3>전담 매니저 배치</h3><p>상담 내용을 바탕으로 전담 매니저가 배정됩니다.</p>
                 </li>
                 <li className="manager-support__card">
                   <span className="manager-support__number">03</span>
                   <span className="manager-support__illustration" aria-hidden="true">
-                    <svg viewBox="0 0 120 96">
+                    <svg className="manager-support__illustration-desktop" viewBox="0 0 120 96">
                       <path className="illustration__paper" d="M23 4h59l15 15v58H23Z" />
                       <path className="illustration__soft" d="M82 4v16h15" />
                       <circle className="illustration__main-fill" cx="39" cy="31" r="8" />
@@ -1330,13 +1543,33 @@ function App() {
                       <circle className="illustration__main-fill" cx="91" cy="87" r="8" />
                       <path className="illustration__ink" d="M37 87h15M68 87h15M27 84v6M57 84h5l-5 6M88 84h6l-6 6h6" />
                     </svg>
+                    <svg className="manager-support__illustration-original" style={{ display: 'none' }} viewBox="0 0 64 64">
+                      <path className="illustration__paper" d="M10 5h34l8 8v43H10Z" />
+                      <path className="illustration__ink" d="M44 5v10h8M25 23h15M25 34h15M25 45h10" />
+                      <circle className="illustration__main-soft" cx="18" cy="23" r="6" />
+                      <circle className="illustration__main-soft" cx="18" cy="34" r="6" />
+                      <path className="illustration__main" d="m15 23 3 3 5-6m-8 14 3 3 5-6m-8 14 3 3 5-6M39 48h16m-6-6 6 6-6 6" />
+                    </svg>
+                    <svg className="manager-support__illustration-mobile" viewBox="0 0 64 64">
+                      <ellipse cx="32" cy="58" rx="26" ry="4" fill="#B97036" opacity=".18" />
+                      <rect x="8" y="7" width="39" height="49" rx="5" fill="#DFA657" />
+                      <rect x="5" y="5" width="38" height="48" rx="5" fill="#FFFBEA" />
+                      <rect x="14" y="3" width="20" height="9" rx="4" fill="#F6B745" />
+                      <rect x="12" y="18" width="6" height="6" rx="2" fill="#F6B745" />
+                      <rect x="12" y="30" width="6" height="6" rx="2" fill="#F6B745" />
+                      <path d="M23 21h12M23 33h9M12 43h13" stroke="#BAA080" strokeWidth="3" strokeLinecap="round" />
+                      <circle cx="43" cy="42" r="18" fill="#CD491F" />
+                      <circle cx="42" cy="39" r="18" fill="#F15A24" />
+                      <path d="M29 33a14 14 0 0 1 17-7" fill="none" stroke="#FFAF58" strokeWidth="2.5" strokeLinecap="round" />
+                      <path d="m31 39 8 8 15-17" fill="none" stroke="#FFFBEA" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </span>
                   <h3>입점 진행</h3><p>필요한 절차를 안내하고 입점 과정을 함께 진행합니다.</p>
                 </li>
                 <li className="manager-support__card">
                   <span className="manager-support__number">04</span>
                   <span className="manager-support__illustration" aria-hidden="true">
-                    <svg viewBox="0 0 120 96">
+                    <svg className="manager-support__illustration-desktop" viewBox="0 0 120 96">
                       <path className="illustration__soft" d="m11 42 12-27h60l12 27" />
                       <path className="illustration__main-fill" d="M8 42h90v14H8z" />
                       <path className="illustration__paper" d="M18 56h70v35H18z" />
@@ -1345,6 +1578,26 @@ function App() {
                       <circle className="illustration__main-fill" cx="81" cy="22" r="3" />
                       <path className="illustration__ink" d="M88 24h9" />
                       <path className="illustration__main" d="M65 70c13-3 22-11 31-24M89 47l7-1-1 7" />
+                    </svg>
+                    <svg className="manager-support__illustration-original" style={{ display: 'none' }} viewBox="0 0 64 64">
+                      <path className="illustration__paper" d="M9 29h36v27H9Z" />
+                      <path className="illustration__main-soft" d="m7 29 6-14h29l6 14Z" />
+                      <path className="illustration__main" d="M7 29h41v8H7zM34 24l8-8 6 5 8-11m-6 0h6v6" />
+                      <path className="illustration__ink" d="M15 56V42h10v14M32 44h8" />
+                      <circle className="illustration__main-fill" cx="34" cy="24" r="3" />
+                    </svg>
+                    <svg className="manager-support__illustration-mobile" viewBox="0 0 64 64">
+                      <ellipse cx="32" cy="58" rx="27" ry="4" fill="#B97036" opacity=".18" />
+                      <rect x="7" y="28" width="43" height="29" rx="3" fill="#DDA357" />
+                      <rect x="6" y="27" width="39" height="28" rx="2" fill="#FFFBEA" />
+                      <path d="m4 26 6-13h31l7 13v6H4Z" fill="#F15A24" />
+                      <path d="m14 13-3 13v6h8v-6l1-13m9 0 1 13v6h8v-6l-3-13" fill="#FFD16C" />
+                      <path d="M4 27h44v5H4Z" fill="#C64B24" opacity=".25" />
+                      <rect x="12" y="36" width="11" height="19" rx="1" fill="#B67845" />
+                      <rect x="27" y="36" width="13" height="11" rx="2" fill="#F8D978" />
+                      <path d="M29 38h8" stroke="#FFFBEA" strokeWidth="2" strokeLinecap="round" />
+                      <path d="m32 31 10-11 7 4L59 8M47 8h12v12" fill="none" stroke="#FFF5D8" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="m32 31 10-11 7 4L59 8M47 8h12v12" fill="none" stroke="#F15A24" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </span>
                   <h3>성장 컨설팅</h3><p>오픈 이후 매장 상황에 맞는 프로모션과 매출 활성화 방향을 제안합니다.</p>
@@ -1510,7 +1763,7 @@ function App() {
                 <div className="consultation-form__privacy-row consultation-form__full">
                   <label className="consultation-form__privacy" htmlFor="consultation-privacy">
                     <input id="consultation-privacy" name="privacyConsent" type="checkbox" required />
-                    <span>개인정보 수집 및 이용에 동의합니다. <b>[필수]</b></span>
+                    <span>{useMobileHeroVideo ? <><span className="consultation-form__privacy-lead"><b>[필수]</b> 개인정보</span> 수집 및 이용에 동의합니다.</> : <>개인정보 수집 및 이용에 동의합니다. <b>[필수]</b></>}</span>
                   </label>
                   <button
                     className="consultation-form__privacy-toggle"
