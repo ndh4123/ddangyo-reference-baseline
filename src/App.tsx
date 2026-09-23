@@ -4,9 +4,47 @@ import { Header } from './components/Header';
 const sectionCount = 9;
 const mobileHeroQuery = '(max-width: 600px)';
 const lowLandscapeQuery = '(min-width: 1200px) and (max-width: 1300px) and (max-height: 850px) and (orientation: landscape)';
-const tabletPortraitQuery = '(min-width: 601px) and (max-width: 1100px) and (orientation: portrait)';
+// 컴팩트 구간(태블릿 / 펼친 폴더블). styles.css 의 601~1100 컴팩트 블록과 같은 판정이어야 한다.
+// 펼친 폴더블은 화면이 정사각형에 가까워 orientation 이 landscape 로 뒤집히므로 폭만 본다.
+const tabletPortraitQuery = '(min-width: 601px) and (max-width: 1100px)';
 const foldLandscapeQuery = '(min-width: 900px) and (max-width: 1100px) and (min-height: 950px) and (max-height: 1050px) and (orientation: landscape)';
+// 단계형 터치 내비게이션(#1~#3 문구 단계)을 쓰는 화면군.
+// 모바일(<=600)뿐 아니라 컴팩트(601~1100, 태블릿·펼친 폴더블)도 손가락으로 조작하므로 같이 묶는다.
+// 폭이 601 을 넘었다는 이유만으로 터치 로직이 통째로 사라지면 펼친 폴더블에서 #1~#3 단계와
+// #3 라이더가 영영 나오지 않는다.
+const steppedTouchNavQuery = '(max-width: 1100px)';
+// 모바일·폴더블·태블릿(휴대폰 손가락 조작 화면군)의 단일 판정.
+// styles.css 의 "@media (max-width:1100px)" 하이브리드 레이어와 반드시 같은 숫자여야 한다.
+// 이 판정이 true 면 JS 는 화면 이동에 일절 개입하지 않고, 브라우저 기본 스크롤 +
+// CSS scroll-snap 만으로 #0~#8 을 움직인다.
+const touchLayoutQuery = '(max-width: 1100px)';
 const largeTabletPortraitQuery = '(min-width: 900px) and (max-width: 1100px) and (orientation: portrait)';
+// #1~#3 스토리. 모바일/컴팩트에서는 한 문장이 곧 한 snap step 이고,
+// 스와이프 한 번에 정확히 한 문장씩 정/역방향으로 움직인다.
+// 모바일/컴팩트 #1~#3 확정 문구. 바깥 배열 = STEP, 안쪽 배열 = 그 STEP 안의 줄.
+// 한 화면 안에서 STEP 만 바뀐다. STEP 당 화면(페이지)을 만들지 않는다.
+const storyScreens: Record<number, readonly (readonly string[])[]> = {
+  1: [
+    ['그럴 때 있잖아요.', '정산서 열어볼 때.'],
+    ['오늘 받은 이 주문,', '내 통장엔 얼마가 남을까?'],
+    ['분명 바빴는데,', '통장엔 남는 게 없어요'],
+  ],
+  2: [
+    ['그럴 때 있잖아요.', '일은 내가 했는데'],
+    ['수수료에 광고비까지', '이것저것 떼고 나면'],
+    ['돈은 안 남고', '한숨만 남아요.'],
+  ],
+  3: [
+    ['그래서 생각했어요.'],
+    ['사장님에겐 수익이 더 남고,'],
+    ['손님에겐 혜택이 더 돌아가는'],
+    ['이런 배달앱은 없을까?'],
+  ],
+};
+// 각 섹션의 STEP 개수. 데스크톱 empathyStepCounts 와 같은 값이어야 한다.
+const storyStepCounts: Record<number, number> = { 1: 3, 2: 3, 3: 4 };
+// 마지막 STEP 문장 전체를 강조하는 섹션. PC 의 .pain__bridge-line--final 과 같은 역할이다.
+const storyFinalHighlight = new Set<number>([3]);
 // iOS/Safari 는 WebM 의 알파를 살리지 못해 라이더가 검은 사각형으로 보인다.
 // 그쪽에서는 같은 그림을 투명 배경 애니메이션 WebP 로 대신 보여준다.
 const isAppleWebKit = /iP(hone|ad|od)/.test(navigator.userAgent)
@@ -135,7 +173,11 @@ function App() {
   });
   const [heroMuted, setHeroMuted] = useState(true);
   const [useMobileHeroVideo, setUseMobileHeroVideo] = useState(() => window.matchMedia(mobileHeroQuery).matches);
+  const [isTouchLayout, setIsTouchLayout] = useState(() => window.matchMedia(touchLayoutQuery).matches);
   const [isTabletPortrait, setIsTabletPortrait] = useState(() => window.matchMedia(tabletPortraitQuery).matches);
+  // #8 이 화면에 한 픽셀이라도 들어와 있는가. active 판정과는 완전히 별개의 값이고
+  // 모바일/컴팩트에서 고정 CTA 를 숨기는 데에만 쓴다.
+  const [consultationInView, setConsultationInView] = useState(false);
   // #3 라이더가 걸리는 가로 조건. 렌더 중 matchMedia 를 직접 읽으면 화면이 바뀌어도
   // 리렌더가 일어나지 않아 라이더가 남거나 안 나타난다(stale). 그래서 state 로 둔다.
   const [isRiderLandscape, setIsRiderLandscape] = useState(() => window.matchMedia(lowLandscapeQuery).matches || window.matchMedia(foldLandscapeQuery).matches);
@@ -159,6 +201,7 @@ function App() {
   const activeRef = useRef(active);
   const heroMutedRef = useRef(heroMuted);
   const useMobileHeroVideoRef = useRef(useMobileHeroVideo);
+  const steppedTouchNavRef = useRef(window.matchMedia(steppedTouchNavQuery).matches);
   const empathyStepsRef = useRef(empathySteps);
   const ownerBenefitStepRef = useRef(ownerBenefitStep);
   const ctaPauseScreenRef = useRef<number | null>(null);
@@ -189,7 +232,6 @@ function App() {
   const consultationPageRef = useRef<HTMLElement>(null);
   const managerScrollRef = useRef<HTMLDivElement>(null);
   const screenNavigationRef = useRef<(screen: number, immediate?: boolean) => void>(() => undefined);
-  const consultationCtaTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const topTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const playCtaScrollReaction = () => {
@@ -418,20 +460,29 @@ function App() {
   useEffect(() => { activeRef.current = active; }, [active]);
   useEffect(() => { heroMutedRef.current = heroMuted; }, [heroMuted]);
   useEffect(() => { useMobileHeroVideoRef.current = useMobileHeroVideo; }, [useMobileHeroVideo]);
+
   useEffect(() => {
-    if (active !== 7) return;
+    const mq = window.matchMedia(steppedTouchNavQuery);
+    const sync = () => { steppedTouchNavRef.current = mq.matches; };
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  useEffect(() => {
+    // 모바일/컴팩트는 FAQ 가 페이지 흐름 안에 그대로 이어지므로 내부 스크롤도, 초기화도 없다.
+    if (isTouchLayout || active !== 7) return;
     setFaqCategory('cost');
     setOpenFaqId(1);
     requestAnimationFrame(() => {
       if (faqScrollRef.current) faqScrollRef.current.scrollTop = 0;
     });
-  }, [active]);
+  }, [active, isTouchLayout]);
   useEffect(() => {
-    if (active !== 8) return;
+    if (isTouchLayout || active !== 8) return;
     requestAnimationFrame(() => {
       if (consultationPageRef.current) consultationPageRef.current.scrollTop = 0;
     });
-  }, [active, useMobileHeroVideo]);
+  }, [active, useMobileHeroVideo, isTouchLayout]);
   useEffect(() => {
     const video = heroVideoRef.current;
     if (!video) return;
@@ -465,11 +516,42 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // 회전(portrait <-> landscape)과 창 크기 변경에서 판정이 남지 않도록 state 로 동기화한다.
+    // 이 값이 바뀌면 아래 내비게이션 effect 가 통째로 다시 붙으므로 stale 핸들러가 생기지 않는다.
+    const mediaQuery = window.matchMedia(touchLayoutQuery);
+    const syncTouchLayout = (event: MediaQueryListEvent) => setIsTouchLayout(event.matches);
+    setIsTouchLayout(mediaQuery.matches);
+    mediaQuery.addEventListener('change', syncTouchLayout);
+    return () => mediaQuery.removeEventListener('change', syncTouchLayout);
+  }, []);
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia(tabletPortraitQuery);
     const syncTabletPortrait = (event: MediaQueryListEvent) => setIsTabletPortrait(event.matches);
     mediaQuery.addEventListener('change', syncTabletPortrait);
     return () => mediaQuery.removeEventListener('change', syncTabletPortrait);
   }, []);
+
+  // [모바일 2026-09-23] 고정 CTA 가 #8 위에 오래 남던 문제.
+  // active 판정은 rootMargin -50% 라 #8 이 화면 중앙선을 넘어야 8 이 되고, 그때까지
+  // CTA 가 상담 화면 위에 그대로 떠 있었다(실측: #8 상단이 852 -> 382 로 올라오는
+  // 470px 구간 내내 opacity 1). active 는 #1~#3 STEP · 섹션 전환과 엮여 있어 건드리면 안 되므로,
+  // CTA 표시 여부만 이 observer 로 따로 뽑는다. threshold 0 · rootMargin 0 이라
+  // #8 의 첫 픽셀이 들어오는 순간 true, 화면에서 완전히 빠지면 false 가 된다.
+  useEffect(() => {
+    if (!isTouchLayout) {
+      setConsultationInView(false);
+      return;
+    }
+    const target = document.querySelector('[data-screen="8"]');
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setConsultationInView(entry.isIntersecting),
+      { threshold: 0, rootMargin: '0px' },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [isTouchLayout]);
 
   useEffect(() => {
     const lowQuery = window.matchMedia(lowLandscapeQuery);
@@ -615,6 +697,240 @@ function App() {
 
   useEffect(() => {
     const sections = [...document.querySelectorAll<HTMLElement>('[data-screen]')];
+
+    if (isTouchLayout) {
+      // ── 모바일 / 컴팩트: 브라우저 네이티브 스크롤 + CSS scroll-snap 전용 ──────────────
+      // wheel / touchstart / touchmove / touchend / keydown 를 하나도 붙이지 않는다.
+      // 화면 이동·문장 단계·역방향은 전부 styles.css 의 scroll-snap-align / scroll-snap-stop
+      // 이 처리하므로, 여기서는 "지금 어느 섹션이 보이는가"만 읽어 헤더 색과 고정 CTA 를 맞춘다.
+      const goTo = (screen: number) => {
+        const index = Math.min(Math.max(screen, 0), sections.length - 1);
+        const target = sections[index];
+        if (!target) return;
+        // 상담으로 가는 길은 지름길이다. 긴 페이지를 천천히 훑지 않고 즉시 도착시킨다.
+        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+        activeRef.current = index;
+        setActive(index);
+        history.replaceState(null, '', `#${index}`);
+      };
+      screenNavigationRef.current = (screen) => goTo(screen);
+
+      const initialScreen = Math.min(Math.max(activeRef.current, 0), sections.length - 1);
+      const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+      document.documentElement.style.scrollBehavior = 'auto';
+      sections[initialScreen]?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      requestAnimationFrame(() => { document.documentElement.style.scrollBehavior = previousScrollBehavior; });
+
+      // 화면 세로 중앙선을 지나는 섹션 하나만 활성으로 본다.
+      // 섹션 높이가 제각각(#1~#3 은 문장 수만큼 길고, #5~#7 은 내용만큼 길다)이어도
+      // 비율 threshold 와 달리 항상 정확히 하나만 잡힌다.
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const index = Number((entry.target as HTMLElement).dataset.screen);
+          if (!Number.isInteger(index)) return;
+          activeRef.current = index;
+          setActive(index);
+          if (window.location.hash !== `#${index}`) history.replaceState(null, '', `#${index}`);
+        });
+      }, { rootMargin: '-50% 0px -50% 0px', threshold: 0 });
+      sections.forEach((section) => observer.observe(section));
+
+      const onHash = () => {
+        const next = Number(window.location.hash.slice(1));
+        if (Number.isInteger(next)) goTo(next);
+      };
+      window.addEventListener('hashchange', onHash);
+
+      // ── #1~#3 문장 STEP ────────────────────────────────────────────────
+      // 이 세 섹션만 예외적으로 스와이프를 직접 읽는다. 나머지 화면은 예전 그대로
+      // 브라우저 네이티브 스크롤 + scroll-snap 이 처리한다.
+      // 섹션에 touch-action:pinch-zoom 을 걸어 세로 스크롤 자체가 일어나지 않게 하고,
+      // 스와이프 한 번에 STEP 하나만 바꾼다. 양 끝(첫 STEP 에서 위 / 마지막 STEP 에서 아래)
+      // 에서만 섹션을 옮긴다. STEP 이 바뀌는 동안 scrollTop 은 한 번도 움직이지 않는다.
+      const setStoryStep = (screen: number, step: number) => {
+        const next = { ...empathyStepsRef.current, [screen]: step };
+        empathyStepsRef.current = next;
+        setEmpathySteps(next);
+      };
+
+      // 섹션을 옮길 때, 뒤로 가는 경우에는 그 섹션의 마지막 STEP 부터 보여준다.
+      const goToStoryNeighbour = (screen: number, backwards: boolean) => {
+        const index = Math.min(Math.max(screen, 0), sections.length - 1);
+        const target = sections[index];
+        if (!target) return;
+        const count = storyStepCounts[index];
+        if (count) setStoryStep(index, backwards ? count - 1 : 0);
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        activeRef.current = index;
+        setActive(index);
+        if (window.location.hash !== `#${index}`) history.replaceState(null, '', `#${index}`);
+      };
+
+      // 문장이 남아 있으면 문장만 바꾸고, 없을 때만 섹션을 옮긴다. touch / wheel 공용.
+      const advanceStory = (screen: number, direction: 1 | -1) => {
+        const count = storyStepCounts[screen];
+        if (!count) return;
+        const step = empathyStepsRef.current[screen] ?? 0;
+        const nextStep = step + direction;
+        if (nextStep >= 0 && nextStep < count) {
+          setStoryStep(screen, nextStep);
+          return;
+        }
+        goToStoryNeighbour(screen + direction, direction < 0);
+      };
+
+      let storyTouch: { x: number; y: number; screen: number } | null = null;
+      let storyLocked = false;
+      let storyLockTimer: number | null = null;
+
+      const onStoryTouchStart = (event: TouchEvent) => {
+        if (event.touches.length !== 1 || !storyStepCounts[activeRef.current]) {
+          storyTouch = null;
+          return;
+        }
+        const touch = event.touches[0];
+        storyTouch = { x: touch.clientX, y: touch.clientY, screen: activeRef.current };
+      };
+
+      const onStoryTouchEnd = (event: TouchEvent) => {
+        const start = storyTouch;
+        storyTouch = null;
+        if (!start || storyLocked) return;
+        if (activeRef.current !== start.screen) return;
+        const touch = event.changedTouches[0];
+        if (!touch) return;
+        const dy = start.y - touch.clientY;           // 손가락 위로 = 양수 = 정방향
+        const dx = Math.abs(touch.clientX - start.x);
+        if (Math.abs(dy) < 40 || dx > Math.abs(dy)) return;  // 탭 · 가로 제스처는 무시
+
+        storyLocked = true;
+        if (storyLockTimer !== null) window.clearTimeout(storyLockTimer);
+        storyLockTimer = window.setTimeout(() => { storyLocked = false; storyLockTimer = null; }, 260);
+
+        advanceStory(start.screen, dy > 0 ? 1 : -1);
+      };
+
+      const onStoryTouchCancel = () => { storyTouch = null; };
+
+      // ── wheel / 트랙패드 ───────────────────────────────────────────────
+      // DevTools 기기 모드나 터치스크린 노트북에서는 손가락이 아니라 휠 이벤트가 들어온다.
+      // touch-action 은 wheel 에 아무 영향이 없어서, 핸들러가 없으면 네이티브 scroll-snap
+      // 이 그대로 동작해 문장을 건너뛰고 섹션이 통째로 넘어간다
+      // (실사용 녹화에서 #1 STEP1 -> #2 STEP1 -> #3 STEP1 -> #4 로 확인).
+      // 그래서 wheel 도 같은 STEP 엔진으로 보낸다.
+      let wheelAccum = 0;
+      let wheelLastAt = 0;        // 마지막 wheel 이벤트 시각
+
+      let wheelGestureUsed = false;
+
+      const onStoryWheel = (event: WheelEvent) => {
+        if (!storyStepCounts[activeRef.current]) return;  // #1~#3 이 아니면 네이티브 그대로
+        if (event.ctrlKey) return;                        // 핀치 줌은 건드리지 않는다
+        // 처리 대상이면 네이티브 스크롤을 막는다. 이 줄이 빠지면 STEP 과 스냅이 같이 돈다.
+        event.preventDefault();
+
+        const now = Date.now();
+        // 트랙패드를 한 번 튕기면 작은 delta 가 수십 개 이어서 들어온다
+        // (실측: 이벤트 20개 · 간격 67ms · 전체 1268ms).
+        // 고정 시간 잠금으로는 그 하나를 두 STEP 으로 세어버려서(실측 STEP1 -> STEP3),
+        // "160ms 이상 끊기면 새 제스처" 로 보고 제스처당 한 번만 넘긴다.
+        if (now - wheelLastAt > 160) {
+          wheelAccum = 0;
+          wheelGestureUsed = false;
+        }
+        wheelLastAt = now;
+
+        // deltaMode 0=px, 1=line, 2=page
+        const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+        wheelAccum += event.deltaY * unit;
+
+        // 이미 한 번 넘긴 제스처가 계속 이어지는 경우를 시간으로 풀면 관성 길이에 휘둘린다.
+        // 대신 거리로 푼다. 관성은 빠르게 잦아들어 240px 를 못 넘기고(실측 잔여 144px),
+        // 휠을 계속 굴리는 사람은 두 칸이면 넘겨서 화면이 멈춘 느낌이 나지 않는다.
+        if (Math.abs(wheelAccum) < (wheelGestureUsed ? 240 : 28)) return;
+
+        const direction: 1 | -1 = wheelAccum > 0 ? 1 : -1;
+        wheelAccum = 0;
+        wheelGestureUsed = true;
+        advanceStory(activeRef.current, direction);
+      };
+
+      // ── #4 FREE 영상: 재생 중에는 #5 방향만 막는다 ─────────────────────
+      // 원래 확정돼 있던 동작인데, 모바일을 네이티브 스크롤 + scroll-snap 으로
+      // 바꾸면서 이 입력 차단만 딸려오지 못했다(데스크톱 분기에만 남아 있었다).
+      // 방향은 화면 위/아래가 아니라 섹션 번호로 판단한다.
+      //   진행 = #4 -> #5 (손가락을 위로, deltaY > 0)  -> 재생 중이면 차단
+      //   역방향 = #4 -> #3                            -> 언제나 그대로 통과
+      // #4 가 아니거나 영상이 실제로 돌고 있지 않으면 아무것도 하지 않는다.
+      const screen4 = sections.find((section) => section.dataset.screen === '4');
+      // 600px 이하는 모바일 영상, 601~1100px 은 데스크톱 영상이 같은 자리에 들어간다.
+      // 둘 다 같은 자리의 <video> 라서 엘리먼트 상태로 판단하면 분기가 필요 없고,
+      // 재진입할 때 currentTime 을 0 으로 되돌리는 순간 ended 도 같이 풀려서
+      // "다시 들어오면 다시 차단" 이 저절로 맞는다.
+      const freeVideoIsPlaying = () => {
+        if (activeRef.current !== 4) return false;
+        const video = screen4?.querySelector('video');
+        if (!video) return false;                       // 이미지 시퀀스 모드
+        const endedRef = useMobileHeroVideoRef.current ? mobileFreeVideoEndedRef : desktopFreeVideoEndedRef;
+        if (endedRef.current) return false;             // 기존 종료 플래그를 그대로 존중한다
+        // 자동재생이 거부돼 멈춰 있는 경우까지 막으면 화면에 갇힌다. 실제로 돌 때만 막는다.
+        return !video.paused && !video.ended;
+      };
+
+      let freeTouchStartY: number | null = null;
+      const onFreeTouchStart = (event: TouchEvent) => {
+        freeTouchStartY = event.touches.length === 1 && freeVideoIsPlaying()
+          ? event.touches[0].clientY
+          : null;
+      };
+      const onFreeTouchMove = (event: TouchEvent) => {
+        if (freeTouchStartY === null || event.touches.length !== 1) return;
+        if (!freeVideoIsPlaying()) { freeTouchStartY = null; return; }
+        const delta = freeTouchStartY - event.touches[0].clientY;   // > 0 이면 #5 방향
+        // 브라우저가 스크롤을 시작하는 슬롭(8px) 안쪽에서 방향을 정한다.
+        // 여기서 섣불리 preventDefault 하면 역방향 스와이프까지 같이 죽는다.
+        if (Math.abs(delta) < 6) return;
+        if (delta < 0) { freeTouchStartY = null; return; }           // 역방향은 네이티브에 넘긴다
+        if (event.cancelable) event.preventDefault();
+      };
+      const onFreeTouchEnd = () => { freeTouchStartY = null; };
+      const onFreeWheel = (event: WheelEvent) => {
+        if (event.ctrlKey || event.deltaY <= 0) return;              // 핀치 줌 · 역방향 제외
+        if (!freeVideoIsPlaying()) return;
+        if (event.cancelable) event.preventDefault();
+      };
+
+      document.addEventListener('touchstart', onFreeTouchStart, { passive: true });
+      document.addEventListener('touchmove', onFreeTouchMove, { passive: false });
+      document.addEventListener('touchend', onFreeTouchEnd, { passive: true });
+      document.addEventListener('touchcancel', onFreeTouchEnd, { passive: true });
+      window.addEventListener('wheel', onFreeWheel, { passive: false });
+
+      document.addEventListener('touchstart', onStoryTouchStart, { passive: true });
+      document.addEventListener('touchend', onStoryTouchEnd, { passive: true });
+      document.addEventListener('touchcancel', onStoryTouchCancel, { passive: true });
+      // preventDefault 를 하려면 passive:false 여야 한다.
+      window.addEventListener('wheel', onStoryWheel, { passive: false });
+
+      return () => {
+        screenNavigationRef.current = () => undefined;
+        observer.disconnect();
+        window.removeEventListener('hashchange', onHash);
+        document.removeEventListener('touchstart', onStoryTouchStart);
+        document.removeEventListener('touchend', onStoryTouchEnd);
+        document.removeEventListener('touchcancel', onStoryTouchCancel);
+        window.removeEventListener('wheel', onStoryWheel);
+        document.removeEventListener('touchstart', onFreeTouchStart);
+        document.removeEventListener('touchmove', onFreeTouchMove);
+        document.removeEventListener('touchend', onFreeTouchEnd);
+        document.removeEventListener('touchcancel', onFreeTouchEnd);
+        window.removeEventListener('wheel', onFreeWheel);
+        if (storyLockTimer !== null) window.clearTimeout(storyLockTimer);
+      };
+    }
+
+    // ── 데스크톱(>=1101px): 기존 단계형 내비게이션을 그대로 유지한다 ────────────────
     const empathyStepCounts: Record<number, number> = { 1: 3, 2: 3, 3: 4 };
     const initial = Math.min(Math.max(activeRef.current, 0), sections.length - 1);
     const previousScrollBehavior = document.documentElement.style.scrollBehavior;
@@ -814,6 +1130,19 @@ function App() {
         }
         mobileFreeWheelConsumed = true;
       }
+      const managerScroller = managerScrollRef.current;
+      const managerTarget = event.target instanceof Node && managerScroller?.contains(event.target);
+      if (activeRef.current === 6 && managerScroller && managerTarget) {
+        const maxScrollTop = managerScroller.scrollHeight - managerScroller.clientHeight;
+        const canScroll = direction > 0
+          ? managerScroller.scrollTop < maxScrollTop - 1
+          : managerScroller.scrollTop > 1;
+        if (canScroll) {
+          event.preventDefault();
+          managerScroller.scrollTop += event.deltaY;
+          return;
+        }
+      }
       const faqScroller = faqScrollRef.current;
       const faqTarget = event.target instanceof Node && faqScroller?.contains(event.target);
       if (activeRef.current === 7 && faqScroller && faqTarget) {
@@ -851,7 +1180,7 @@ function App() {
     let scrollerTouch: { x: number; y: number; screen: number; atTop: boolean; atBottom: boolean; scrollable: boolean } | null = null;
     const SCROLL_EDGE_EPSILON = 2;
     const scrollerFor = (screen: number): HTMLElement | null => {
-      if (!useMobileHeroVideoRef.current) return null;
+      // 폭으로 막지 않는다. 내부 스크롤이 실제로 생겼는지는 canScrollInside 가 판단한다.
       if (screen === 6) return managerScrollRef.current;
       if (screen === 7) return faqScrollRef.current;
       if (screen === 8) return consultationPageRef.current;
@@ -862,7 +1191,7 @@ function App() {
     const isAtBottom = (el: HTMLElement) => el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_EDGE_EPSILON;
     const onTouchStart = (event: TouchEvent) => {
       empathyTouchStart = null;
-      if (useMobileHeroVideoRef.current && activeRef.current >= 1 && activeRef.current <= 3) {
+      if (steppedTouchNavRef.current && activeRef.current >= 1 && activeRef.current <= 3) {
         if (event.touches.length !== 1) return;
         if (event.target instanceof Element && event.target.closest('a, button, input, textarea, select')) return;
         empathyTouchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY, screen: activeRef.current };
@@ -911,12 +1240,12 @@ function App() {
         const deltaY = start.y - end.clientY;
         if (Math.abs(deltaY) < 24 || Math.abs(deltaY) <= Math.abs(start.x - end.clientX)) return;
         event.preventDefault();
-        if (useMobileHeroVideoRef.current && start.screen === 1 && deltaY < 0) {
+        if (steppedTouchNavRef.current && start.screen === 1 && deltaY < 0) {
           // A completed #1 reverse swipe is explicit Hero navigation, not a text step.
           go(0, -1, true);
           return;
         }
-        if (useMobileHeroVideoRef.current && start.screen === 2 && deltaY < 0) {
+        if (steppedTouchNavRef.current && start.screen === 2 && deltaY < 0) {
           // A completed #2 reverse swipe returns to #1 without consuming text steps.
           go(1, -1, true);
           return;
@@ -1008,28 +1337,25 @@ function App() {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('hashchange', onHash);
     };
-  }, []);
+  }, [isTouchLayout]);
 
-  const darkHeader = [1, 2, 3].includes(active);
+  // #8 은 어두운 전환 화면이라 헤더도 같은 계열로 넘어간다.
+  const darkHeader = [1, 2, 3, 8].includes(active);
   const bridgeFinalActive = empathySteps[3] === 3
     || (useMobileHeroVideo && active === 3 && ctaPauseScreen === 3);
   const mobileFixedConsultCtaVisible = active >= 0 && active < sectionCount
     && !(active === 4 && !useMobileHeroVideo && ctaPauseScreen !== 4);
-  const showFixedConsultCta = (!useMobileHeroVideo || mobileFixedConsultCtaVisible)
-    && active !== 8;
+  // 모바일/컴팩트에서는 #0~#7 어디서나 항상 떠 있고, #8 이 화면에 들어오기 시작하는
+  // 순간 사라진다(consultationInView). active !== 8 도 그대로 두어, 해시 이동처럼
+  // observer 가 아직 반응하지 않은 경우에도 #8 에서는 확실히 숨는다.
+  const showFixedConsultCta = isTouchLayout
+    ? (active !== 8 && !consultationInView)
+    : ((!useMobileHeroVideo || mobileFixedConsultCtaVisible) && active !== 8);
   const selectedFaqCategory = faqCategories.find((category) => category.id === faqCategory) ?? faqCategories[0];
-  const postEntryConsultFaq = faqCategories
-    .find((category) => category.id === 'operation')
-    ?.items.find((item) => item.id === 24);
-  const displayedFaqItems: readonly FaqItem[] = useMobileHeroVideo
-    ? faqCategory === 'process'
-      ? [...selectedFaqCategory.items, ...commonFaqs]
-      : faqCategory === 'operation'
-        ? selectedFaqCategory.items.filter((item) => item.id !== 24)
-        : faqCategory === 'benefits'
-          ? [...selectedFaqCategory.items, ...(postEntryConsultFaq ? [postEntryConsultFaq] : [])]
-          : selectedFaqCategory.items
-    : selectedFaqCategory.items;
+  // FAQ 가 내부 스크롤 상자에 갇혀 있던 시절에는 모바일에서만 항목을 카테고리 사이로
+  // 옮겨 담아 상자 높이를 맞췄다. 이제 모바일도 페이지 흐름 그대로 길어지므로
+  // 전 해상도가 같은 구성을 쓴다. 질문·답변 내용 자체는 그대로다.
+  const displayedFaqItems: readonly FaqItem[] = selectedFaqCategory.items;
   const handleConsultationSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -1074,6 +1400,44 @@ function App() {
       </article>
     );
   };
+  // 모바일/컴팩트의 #1~#3. 문장 하나가 곧 한 화면이고 그 자체가 snap step 이다.
+  // JS 단계 state 없이 CSS scroll-snap 만으로 정/역방향이 모두 네이티브하게 움직인다.
+  // 모바일/컴팩트 #1~#3. 섹션은 한 화면으로 고정하고 STEP 만 겹쳐 두었다가 하나만 보여준다.
+  // 스크롤 위치는 STEP 이 바뀔 때 전혀 움직이지 않는다(문장 전환 = opacity/translate 뿐).
+  const renderStoryScreen = (screen: 1 | 2 | 3) => {
+    const steps = storyScreens[screen];
+    const currentStep = Math.min(empathySteps[screen] ?? 0, steps.length - 1);
+    const highlightFinal = storyFinalHighlight.has(screen);
+    return (
+      <section
+        id={screen === 1 ? 'pain' : undefined}
+        className={`screen pain pain--story ${active === screen ? 'is-active' : ''}`}
+        data-screen={screen}
+      >
+        <div className="story">
+          {steps.map((lines, index) => {
+            const isFinal = index === steps.length - 1;
+            return (
+              <div
+                className={`story__step${index === currentStep ? ' is-active' : ''}${highlightFinal && isFinal ? ' story__step--final' : ''}`}
+                // PC 와 같이 문장을 전부 보여주고 활성 문장만 강조한다. 숨기지 않으므로
+                // aria-hidden 대신 데스크톱과 같은 aria-current 를 쓴다.
+                aria-current={index === currentStep ? 'step' : undefined}
+                key={lines.join('|')}
+              >
+                <p>
+                  {/* 줄은 storyScreens 의 배열 그대로 나눈다. <br> 이나 공백으로 억지로 맞추지 않는다. */}
+                  {lines.map((line) => (
+                    <span className="story__line" key={line}>{line}</span>
+                  ))}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
+  };
   const toggleHeroSound = () => {
     const video = heroVideoRef.current;
     if (!video) return;
@@ -1091,32 +1455,12 @@ function App() {
         className={`fixed-consult-cta ${showFixedConsultCta ? 'is-visible' : ''} ${ctaPauseScreen === active ? 'is-paused' : ''} ${ctaScrollReacting ? 'is-scroll-reacting' : ''}${useMobileOwnerBenefitVideo && active === 4 ? ' fixed-consult-cta--mobile-free' : ''}`}
         href="#8"
         onClick={(event) => { event.preventDefault(); screenNavigationRef.current(8, useMobileHeroVideo); }}
-        onTouchStart={(event) => {
-          const touch = event.touches[0];
-          consultationCtaTouchStartRef.current = useMobileHeroVideo && event.touches.length === 1
-            ? { x: touch.clientX, y: touch.clientY } : null;
-        }}
-        onTouchCancel={() => { consultationCtaTouchStartRef.current = null; }}
-        onTouchEnd={(event) => {
-          const start = consultationCtaTouchStartRef.current;
-          consultationCtaTouchStartRef.current = null;
-          const touch = event.changedTouches[0];
-          if (!useMobileHeroVideo || !start || !touch || event.touches.length !== 0
-            || Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 12) return;
-          // A tap during native smooth scrolling can lose its synthesized click.
-          // Handle the tap here and suppress the duplicate compatibility click.
-          event.preventDefault();
-          event.stopPropagation();
-          screenNavigationRef.current(8, true);
-        }}
-
-
         aria-hidden={!showFixedConsultCta}
         tabIndex={showFixedConsultCta ? 0 : -1}
       >
         무료 입점 상담
       </a>
-      {!useMobileHeroVideo && (
+      {!isTouchLayout && (
         <>
           <a
             className={`next-screen ${active < sectionCount - 1 ? 'is-visible' : ''}${active === 0 ? ' is-solo' : ''}`}
@@ -1170,6 +1514,12 @@ function App() {
           <video
             ref={heroVideoRef}
             className="hero-video"
+            // [모바일 2026-09-23] v7 은 그림 안에 검은 레터박스가 구워져 있어(위 110~114px ·
+            // 아래 110~128px) 스크롤 전환 중 화면 한가운데에 검은 가로 띠가 보인다.
+            // 그 바를 거울 반사+블러로 채운 hero-4scene-mobile-no-letterbox-final.mp4 을
+            // 만들어 적용해 봤지만, 전환 중 띠는 사라지는 대신 정착 화면에서 상·하단이
+            // 반사된 것처럼 보여 더 어색했다. 그래서 띠를 그대로 허용하고 v7 로 되돌린다.
+            // no-letterbox-final 파일은 지우지 않고 남겨 둔다.
             src={useMobileHeroVideo ? '/videos/hero-4scene-mobile-v7.mp4' : '/videos/hero-4scene-v2.mp4'}
             autoPlay
             loop
@@ -1207,6 +1557,7 @@ function App() {
           </button>
         </section>
 
+        {isTouchLayout ? renderStoryScreen(1) : (
         <section id="pain" className={`screen pain ${active === 1 ? 'is-active' : ''}`} data-screen="1">
           <div className="pain__layout">
             <div className="pain__copy pain__copy--settlement">
@@ -1231,15 +1582,11 @@ function App() {
                 preload="metadata"
               />
             </div>
-            {useMobileHeroVideo && (
-              <>
-                <img className="pain__settlement-accent pain__settlement-accent--bankbook" src="/images/settlement/bankbook-icon.svg" alt="" aria-hidden="true" draggable="false" />
-                <img className="pain__settlement-accent pain__settlement-accent--receipt" src="/images/settlement/receipt-icon.svg" alt="" aria-hidden="true" draggable="false" />
-              </>
-            )}
           </div>
         </section>
+        )}
 
+        {isTouchLayout ? renderStoryScreen(2) : (
         <section className={`screen pain ${active === 2 ? 'is-active' : ''}`} data-screen="2">
           <div className="pain__layout">
             <div className="pain__copy pain__copy--fees">
@@ -1264,15 +1611,11 @@ function App() {
                 preload="metadata"
               />
             </div>
-            {useMobileHeroVideo && (
-              <>
-                <img className="pain__fees-accent pain__fees-accent--commission" src="/images/fees/fee-deduction-icon.svg" alt="" aria-hidden="true" draggable="false" />
-                <img className="pain__fees-accent pain__fees-accent--advertising" src="/images/fees/ad-cost-icon.svg" alt="" aria-hidden="true" draggable="false" />
-              </>
-            )}
           </div>
         </section>
+        )}
 
+        {isTouchLayout ? renderStoryScreen(3) : (
         <section className={`screen pain pain--bridge ${active === 3 ? 'is-active' : ''}`} data-screen="3">
           <div className="pain__bridge">
             <h2 className={`pain__bridge-step pain__bridge-heading ${empathySteps[3] === 0 ? 'is-active' : ''}`} aria-current={empathySteps[3] === 0 ? 'step' : undefined}>그래서 생각했어요.</h2>
@@ -1280,7 +1623,7 @@ function App() {
             <p className={`pain__bridge-step pain__bridge-line ${empathySteps[3] === 2 ? 'is-active' : ''}`} aria-current={empathySteps[3] === 2 ? 'step' : undefined}>{useMobileHeroVideo ? <>손님에겐<br />혜택이 더 돌아가는</> : '손님에겐 혜택이 더 돌아가는'}</p>
             <p className={`pain__bridge-step pain__bridge-line pain__bridge-line--final ${bridgeFinalActive ? 'is-active' : ''}`} aria-current={bridgeFinalActive ? 'step' : undefined}>{useMobileHeroVideo ? <span>이런 배달앱은<br />없을까?</span> : '이런 배달앱은 없을까?'}</p>
           </div>
-          {(useMobileHeroVideo || isTabletPortrait || isRiderLandscape) && bridgeFinalActive && (
+          {isRiderLandscape && bridgeFinalActive && (
             isAppleWebKit ? (
               <img className="pain__bridge-rider" src="/animations/bora-rider-in-place-fast-hd.webp" alt="" aria-hidden="true" draggable="false" />
             ) : (
@@ -1288,6 +1631,7 @@ function App() {
             )
           )}
         </section>
+        )}
 
         <section className={`screen owner-benefits ${active === 4 ? 'is-active' : ''}`} data-screen="4">
           <div className="owner-benefits__inner" aria-label="땡겨요 주문수수료 2%, 광고비 없음, 입점비 없음, 월이용료 없음">
@@ -1385,22 +1729,41 @@ function App() {
                 <p>더 좋은 혜택으로 사장님의 오늘이, 더 나은 내일이 됩니다.</p>
               </header>
 
+              {/* DOM 순서 = 모바일/컴팩트 카드 피드의 정보 위계 순서.
+                  1 대표 이미지 · 2 브랜드 영상 · 3 지역화폐 · 4 온누리 · 5 쿠폰팩.
+                  데스크톱은 grid-column / absolute 로 자리를 직접 지정하므로 순서에 영향받지 않는다. */}
               <div className="section5-benefits__visuals">
-              <article className="section5-phone section5-phone--asset section5-phone--local section5-phone--static" aria-label="우리동네 지역화폐 혜택">
-                <div className="section5-phone__screen">
-                  <img src="/images/benefits/02-local-currency-map.png" alt="착한배달앱 땡겨요와 함께하는 우리 지역 지도" draggable="false" />
-                </div>
-              </article>
-
               <article className="section5-phone section5-phone--asset section5-phone--national section5-phone--static" aria-label="국민 배달앱 땡겨요">
                 <div className="section5-phone__screen">
                   <img src="/images/benefits/01-national-delivery-app.png" alt="누구나 혜택받는 국민 배달앱 땡겨요" draggable="false" />
                 </div>
               </article>
 
-              <article className="section5-phone section5-phone--asset section5-phone--rest section5-phone--static" aria-label="전국 휴게소 혜택">
+              <article className="section5-phone section5-phone--brand" aria-label="오늘 땡길만한 브랜드 할인">
+                <div className="section5-phone__brand-stage">
+                  <div className="section5-phone__screen section5-phone__screen--brand">
+                    <video
+                      src="/images/benefits/06-brand-discount.mp4"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                    />
+                  </div>
+                  <img
+                    className="section5-phone__brand-frame"
+                    src="/images/benefits/06-brand-discount-phone-frame.png.png"
+                    alt=""
+                    aria-hidden="true"
+                    draggable="false"
+                  />
+                </div>
+              </article>
+
+              <article className="section5-phone section5-phone--asset section5-phone--local section5-phone--static" aria-label="우리동네 지역화폐 혜택">
                 <div className="section5-phone__screen">
-                  <img src="/images/benefits/03-rest-area-benefit.png" alt="전국 휴게소 최대 20퍼센트 할인 혜택" draggable="false" />
+                  <img src="/images/benefits/02-local-currency-map.png" alt="착한배달앱 땡겨요와 함께하는 우리 지역 지도" draggable="false" />
                 </div>
               </article>
 
@@ -1415,35 +1778,15 @@ function App() {
                   <img src="/images/benefits/05-coupon-pack.png" alt="첫주문과 재주문을 위한 총 16000원 쿠폰팩" draggable="false" />
                 </div>
               </article>
-
-              <article className="section5-phone section5-phone--brand" aria-label="오늘 땡길만한 브랜드 할인">
-                <div className="section5-phone__screen section5-phone__screen--brand">
-                  <video
-                    src="/images/benefits/06-brand-discount.mp4"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                  />
-                </div>
-                <img
-                  className="section5-phone__brand-frame"
-                  src="/images/benefits/06-brand-discount-phone-frame.png.png"
-                  alt=""
-                  aria-hidden="true"
-                  draggable="false"
-                />
-              </article>
               </div>
           </div>
         </section>
 
         <section className={`screen customer-benefits manager-support ${active === 6 ? 'is-active' : ''}`} data-screen="6">
-          <div className="manager-support__inner" ref={managerScrollRef}>
+          <div className="manager-support__inner" ref={isTouchLayout ? undefined : managerScrollRef}>
               <header className="manager-support__header">
                 <h2>사장님은 <strong>장사에만</strong> 집중하세요.</h2>
-                <p>{useMobileHeroVideo ? '간단한 매장 정보만 남겨주시면 끝~~' : '복잡한 입점 절차부터 장사가 더 잘되도록 돕는 맞춤 컨설팅까지 지원합니다.'}</p>
+                <p>복잡한 입점 절차부터 장사가 더 잘되도록 돕는 맞춤 컨설팅까지 지원합니다.</p>
               </header>
               <ol className="manager-support__steps" aria-label="입점 및 운영 지원 절차">
                 <li className="manager-support__card">
@@ -1639,25 +1982,22 @@ function App() {
                 );
               })}
             </div>
-            <div className="faq__scroll-region" ref={useMobileHeroVideo ? undefined : faqScrollRef}>
+            <div className="faq__scroll-region" ref={isTouchLayout ? undefined : faqScrollRef}>
               <div
                 id="faq-panel"
                 className="faq__panel"
                 role="tabpanel"
                 aria-labelledby={`faq-tab-${selectedFaqCategory.id}`}
-                ref={useMobileHeroVideo ? faqScrollRef : undefined}
               >
                 <div className="faq-accordion">
                   {displayedFaqItems.map(renderFaqItem)}
                 </div>
               </div>
-              {!useMobileHeroVideo && (
-                <div className="faq__common" aria-label="공통 입점 상담 FAQ">
-                  <div className="faq-accordion">
-                    {commonFaqs.map(renderFaqItem)}
-                  </div>
+              <div className="faq__common" aria-label="공통 입점 상담 FAQ">
+                <div className="faq-accordion">
+                  {commonFaqs.map(renderFaqItem)}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </section>
