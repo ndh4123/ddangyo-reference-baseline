@@ -1087,11 +1087,14 @@ h1, h2, h3, p { margin: 0; }
   .mobile-nav a:active { background:rgba(255,255,255,.08); }
 
   /* ── 고정 CTA: #0~#7 어디서나 상담으로 가는 지름길 ────────────────────── */
-  .fixed-consult-cta { right:var(--cta-inset); left:var(--cta-inset); bottom:calc(var(--cta-inset) + env(safe-area-inset-bottom,0px)); width:auto; min-width:0; height:var(--cta-h); padding:0 20px; font-size:17px; background:#0046FF; color:#fff; box-shadow:0 10px 24px rgba(0,70,255,.28); transform:translateY(12px); transition:opacity .18s ease-out,transform .18s ease-out,visibility .18s ease-out,background-color .18s ease-out; }
+  /* [모바일 2026-09-26] 눈에 띄도록 주황 배경 + 글자 17px→20px(약 18%) · 800.
+     위치·높이·너비·둥근 모서리는 #5/#6/#8 레이아웃 기준이라 그대로 둔다. */
+  .fixed-consult-cta { right:var(--cta-inset); left:var(--cta-inset); bottom:calc(var(--cta-inset) + env(safe-area-inset-bottom,0px)); width:auto; min-width:0; height:var(--cta-h); padding:0 20px; font-size:20px; font-weight:800; background:#F15A24; color:#fff; box-shadow:0 10px 24px rgba(241,90,36,.3); transform:translateY(12px); transition:opacity .18s ease-out,transform .18s ease-out,visibility .18s ease-out,background-color .18s ease-out; }
   .fixed-consult-cta.is-visible { transform:translateY(0); }
   .fixed-consult-cta.is-visible.is-paused,
-  .fixed-consult-cta.is-visible.is-scroll-reacting { scale:1; background:#0046FF; }
-  .fixed-consult-cta:active { background:#f15a24; }
+  .fixed-consult-cta.is-visible.is-scroll-reacting { scale:1; background:#F15A24; }
+  /* 배경이 이미 주황이라 누를 때는 한 톤 어둡게 해서 눌림을 보여준다. */
+  .fixed-consult-cta:active { background:#D9481A; }
   body:has(.owner-benefits.is-active) .fixed-consult-cta { bottom:calc(var(--cta-inset) + env(safe-area-inset-bottom,0px)); }
   /* 화살표 버튼은 네이티브 스크롤에서 할 일이 없다 */
   .back-to-top, .next-screen { display:none !important; }

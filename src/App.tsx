@@ -19,6 +19,10 @@ const steppedTouchNavQuery = '(max-width: 1100px)';
 // CSS scroll-snap 만으로 #0~#8 을 움직인다.
 const touchLayoutQuery = '(max-width: 1100px)';
 const largeTabletPortraitQuery = '(min-width: 900px) and (max-width: 1100px) and (orientation: portrait)';
+// #8 상담 신청이 실제로 접수(전송 성공)됐을 때만 띄울 문구. 아직 전송 연결 전이라
+// handleConsultationSubmit 은 기존 "접수 연결 안 됨" 안내를 그대로 띄운다.
+// n8n 연결 작업 때 전송 성공 분기에서 이 문구를 쓴다.
+const consultationSuccessMessage = '상담 신청이 접수되었습니다. 담당 매니저 배정 후 연락드리겠습니다. 감사합니다.';
 // #1~#3 스토리. 모바일/컴팩트에서는 한 문장이 곧 한 snap step 이고,
 // 스와이프 한 번에 정확히 한 문장씩 정/역방향으로 움직인다.
 // 모바일/컴팩트 #1~#3 확정 문구. 바깥 배열 = STEP, 안쪽 배열 = 그 STEP 안의 줄.
