@@ -1183,6 +1183,9 @@ h1, h2, h3, p { margin: 0; }
      overscroll-behavior 는 건드리지 않는다. 기본값(auto)이라 목록 끝에서 스와이프하면
      그대로 문서로 이어져 #6 으로 넘어간다(스크롤 체이닝). contain 을 주면 갇힌다. */
   .screen.customer-benefits { position:relative; height:100svh; min-height:100svh; display:block; overflow:hidden; }
+  /* [2026-09-25] #4 영상 재생 중 잠금을 없앤 뒤, #3→#4→#5 를 빠르게 연달아 스와이프하면
+     앞 스와이프의 관성으로 #5 를 지나 #6·#7 까지 넘어갔다(실측 10회 중 2회). #4 처럼 한 번은 반드시 선다. */
+  .screen.customer-benefits { scroll-snap-stop:always; }
   .section5-benefits { position:absolute; z-index:1; top:var(--header-h); right:0; bottom:var(--cta-space); left:0; width:auto; max-width:none; margin:0; padding:12px 16px 16px; display:block; overflow-x:hidden; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .section5-benefits__copy,
   .section5-benefits__visuals { max-width:var(--touch-max); margin-inline:auto; }

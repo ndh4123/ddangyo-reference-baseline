@@ -54,8 +54,9 @@ const desktopOwnerBenefitVideoSrc = '/videos/pc-explosion-final.mp4';
 // #4 효과음 음량 통일: 두 영상 파일의 실측 라우드니스(상위 10% 구간 RMS)가 달라
 // mobile-free-explosion-v7 = 0.29826, pc-explosion-final = 0.09931 (PC 쪽이 9.55dB 더 작다).
 // 현재 가장 작게 들리는 태블릿 세로(모바일영상 x 0.126)를 기준으로 나머지를 낮춘다.
-const ownerBenefitMobileVideoVolume = 0.126;   // mobile-free-explosion-v7.mp4 (모바일 / 태블릿 세로 공용)
-const ownerBenefitDesktopVideoVolume = 0.3784; // pc-explosion-final.mp4 (원본이 작아 계수는 크다)
+// [2026-09-25] 두 값 모두 정확히 절반으로 낮췄다(0.126 -> 0.063, 0.3784 -> 0.1892). 상대 비율은 그대로다.
+const ownerBenefitMobileVideoVolume = 0.063;   // mobile-free-explosion-v7.mp4 (모바일 / 태블릿 세로 공용)
+const ownerBenefitDesktopVideoVolume = 0.1892; // pc-explosion-final.mp4 (원본이 작아 계수는 크다)
 
 const mobileOwnerBenefitSteps = Array.from(
   { length: 8 },
@@ -196,8 +197,6 @@ function App() {
   const heroRiderRef = useRef<HTMLVideoElement>(null);
   const mobileOwnerBenefitVideoRef = useRef<HTMLVideoElement>(null);
   const desktopOwnerBenefitVideoRef = useRef<HTMLVideoElement>(null);
-  const mobileFreeVideoEndedRef = useRef(false);
-  const desktopFreeVideoEndedRef = useRef(false);
   const activeRef = useRef(active);
   const heroMutedRef = useRef(heroMuted);
   const useMobileHeroVideoRef = useRef(useMobileHeroVideo);
@@ -576,7 +575,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    mobileFreeVideoEndedRef.current = false;
     const video = mobileOwnerBenefitVideoRef.current;
     if (!video) return;
     let cancelled = false;
@@ -614,7 +612,6 @@ function App() {
     if (!useMobileHeroVideo && desktopOwnerBenefitVideoSrc) {
       const video = desktopOwnerBenefitVideoRef.current;
       let cancelled = false;
-      desktopFreeVideoEndedRef.current = false;
       if (video) {
         video.volume = isTabletPortrait ? ownerBenefitMobileVideoVolume : ownerBenefitDesktopVideoVolume;
         video.currentTime = 0;
@@ -754,11 +751,15 @@ function App() {
         setEmpathySteps(next);
       };
 
+      // #3 마지막 STEP -> #4 로 넘어간 시각 + 820ms. 아래 #4 진입 잠금이 쓴다.
+      let section4EntryLockUntil = 0;
+
       // 섹션을 옮길 때, 뒤로 가는 경우에는 그 섹션의 마지막 STEP 부터 보여준다.
       const goToStoryNeighbour = (screen: number, backwards: boolean) => {
         const index = Math.min(Math.max(screen, 0), sections.length - 1);
         const target = sections[index];
         if (!target) return;
+        if (index === 4 && !backwards) section4EntryLockUntil = Date.now() + 820;
         const count = storyStepCounts[index];
         if (count) setStoryStep(index, backwards ? count - 1 : 0);
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -856,56 +857,38 @@ function App() {
         advanceStory(activeRef.current, direction);
       };
 
-      // ── #4 FREE 영상: 재생 중에는 #5 방향만 막는다 ─────────────────────
-      // 원래 확정돼 있던 동작인데, 모바일을 네이티브 스크롤 + scroll-snap 으로
-      // 바꾸면서 이 입력 차단만 딸려오지 못했다(데스크톱 분기에만 남아 있었다).
-      // 방향은 화면 위/아래가 아니라 섹션 번호로 판단한다.
-      //   진행 = #4 -> #5 (손가락을 위로, deltaY > 0)  -> 재생 중이면 차단
-      //   역방향 = #4 -> #3                            -> 언제나 그대로 통과
-      // #4 가 아니거나 영상이 실제로 돌고 있지 않으면 아무것도 하지 않는다.
-      const screen4 = sections.find((section) => section.dataset.screen === '4');
-      // 600px 이하는 모바일 영상, 601~1100px 은 데스크톱 영상이 같은 자리에 들어간다.
-      // 둘 다 같은 자리의 <video> 라서 엘리먼트 상태로 판단하면 분기가 필요 없고,
-      // 재진입할 때 currentTime 을 0 으로 되돌리는 순간 ended 도 같이 풀려서
-      // "다시 들어오면 다시 차단" 이 저절로 맞는다.
-      const freeVideoIsPlaying = () => {
-        if (activeRef.current !== 4) return false;
-        const video = screen4?.querySelector('video');
-        if (!video) return false;                       // 이미지 시퀀스 모드
-        const endedRef = useMobileHeroVideoRef.current ? mobileFreeVideoEndedRef : desktopFreeVideoEndedRef;
-        if (endedRef.current) return false;             // 기존 종료 플래그를 그대로 존중한다
-        // 자동재생이 거부돼 멈춰 있는 경우까지 막으면 화면에 갇힌다. 실제로 돌 때만 막는다.
-        return !video.paused && !video.ended;
-      };
-
-      let freeTouchStartY: number | null = null;
-      const onFreeTouchStart = (event: TouchEvent) => {
-        freeTouchStartY = event.touches.length === 1 && freeVideoIsPlaying()
+      // ── #3 -> #4 전환 직후 820ms: #5 방향 입력만 받지 않는다 ──────────────
+      // #3 에서 #4 로는 scrollIntoView({behavior:'smooth'}) 로 넘어간다. 그 스크롤이 끝나기 전에
+      // 다음 스와이프가 겹치면 브라우저가 #5 의 scroll-snap-stop 을 적용하지 못하고
+      // #6·#7·#8 까지 흘러갔다(실측: 처음 진입 후 0.7초 안에 다시 스와이프 8회 중 4회).
+      // PC 의 도착 직후 잠금과 같은 820ms 동안 진행 방향만 막는다. 영상 재생 상태와는 무관하고,
+      // 시간이 지나면 재생 중이어도 곧바로 #5 로 넘어간다. #4 -> #3 은 언제나 그대로 통과한다.
+      const inSection4EntryLock = () => activeRef.current === 4 && Date.now() < section4EntryLockUntil;
+      let section4EntryTouchY: number | null = null;
+      const onSection4EntryTouchStart = (event: TouchEvent) => {
+        section4EntryTouchY = event.touches.length === 1 && inSection4EntryLock()
           ? event.touches[0].clientY
           : null;
       };
-      const onFreeTouchMove = (event: TouchEvent) => {
-        if (freeTouchStartY === null || event.touches.length !== 1) return;
-        if (!freeVideoIsPlaying()) { freeTouchStartY = null; return; }
-        const delta = freeTouchStartY - event.touches[0].clientY;   // > 0 이면 #5 방향
-        // 브라우저가 스크롤을 시작하는 슬롭(8px) 안쪽에서 방향을 정한다.
-        // 여기서 섣불리 preventDefault 하면 역방향 스와이프까지 같이 죽는다.
+      const onSection4EntryTouchMove = (event: TouchEvent) => {
+        if (section4EntryTouchY === null || event.touches.length !== 1) return;
+        if (!inSection4EntryLock()) { section4EntryTouchY = null; return; }
+        const delta = section4EntryTouchY - event.touches[0].clientY;   // > 0 이면 #5 방향
+        // 브라우저가 스크롤을 시작하기 전(6px 안쪽)에 방향을 정한다. 역방향은 막지 않는다.
         if (Math.abs(delta) < 6) return;
-        if (delta < 0) { freeTouchStartY = null; return; }           // 역방향은 네이티브에 넘긴다
+        if (delta < 0) { section4EntryTouchY = null; return; }
         if (event.cancelable) event.preventDefault();
       };
-      const onFreeTouchEnd = () => { freeTouchStartY = null; };
-      const onFreeWheel = (event: WheelEvent) => {
-        if (event.ctrlKey || event.deltaY <= 0) return;              // 핀치 줌 · 역방향 제외
-        if (!freeVideoIsPlaying()) return;
-        if (event.cancelable) event.preventDefault();
+      const onSection4EntryTouchEnd = () => { section4EntryTouchY = null; };
+      const onSection4EntryWheel = (event: WheelEvent) => {
+        if (event.ctrlKey || event.deltaY <= 0) return;                    // 핀치 줌 · 역방향 제외
+        if (inSection4EntryLock() && event.cancelable) event.preventDefault();
       };
-
-      document.addEventListener('touchstart', onFreeTouchStart, { passive: true });
-      document.addEventListener('touchmove', onFreeTouchMove, { passive: false });
-      document.addEventListener('touchend', onFreeTouchEnd, { passive: true });
-      document.addEventListener('touchcancel', onFreeTouchEnd, { passive: true });
-      window.addEventListener('wheel', onFreeWheel, { passive: false });
+      document.addEventListener('touchstart', onSection4EntryTouchStart, { passive: true });
+      document.addEventListener('touchmove', onSection4EntryTouchMove, { passive: false });
+      document.addEventListener('touchend', onSection4EntryTouchEnd, { passive: true });
+      document.addEventListener('touchcancel', onSection4EntryTouchEnd, { passive: true });
+      window.addEventListener('wheel', onSection4EntryWheel, { passive: false });
 
       document.addEventListener('touchstart', onStoryTouchStart, { passive: true });
       document.addEventListener('touchend', onStoryTouchEnd, { passive: true });
@@ -921,11 +904,11 @@ function App() {
         document.removeEventListener('touchend', onStoryTouchEnd);
         document.removeEventListener('touchcancel', onStoryTouchCancel);
         window.removeEventListener('wheel', onStoryWheel);
-        document.removeEventListener('touchstart', onFreeTouchStart);
-        document.removeEventListener('touchmove', onFreeTouchMove);
-        document.removeEventListener('touchend', onFreeTouchEnd);
-        document.removeEventListener('touchcancel', onFreeTouchEnd);
-        window.removeEventListener('wheel', onFreeWheel);
+        document.removeEventListener('touchstart', onSection4EntryTouchStart);
+        document.removeEventListener('touchmove', onSection4EntryTouchMove);
+        document.removeEventListener('touchend', onSection4EntryTouchEnd);
+        document.removeEventListener('touchcancel', onSection4EntryTouchEnd);
+        window.removeEventListener('wheel', onSection4EntryWheel);
         if (storyLockTimer !== null) window.clearTimeout(storyLockTimer);
       };
     }
@@ -1064,10 +1047,6 @@ function App() {
     };
 
     const handleDirectionalInput = (direction: -1 | 1) => {
-      if (direction > 0 && activeRef.current === 4 && useMobileHeroVideoRef.current
-        && mobileOwnerBenefitVideoSrc && !mobileFreeVideoEndedRef.current) return;
-      if (direction > 0 && activeRef.current === 4 && !useMobileHeroVideoRef.current
-        && desktopOwnerBenefitVideoSrc && !desktopFreeVideoEndedRef.current) return;
       if (ctaPauseInputLockedRef.current) return;
       const screen = activeRef.current;
       if (direction < 0 && screen === 1) {
@@ -1078,8 +1057,11 @@ function App() {
         go(screen - 1, direction);
         return;
       }
-      if (direction > 0 && screen === 4 && !useMobileHeroVideoRef.current
-        && desktopOwnerBenefitVideoSrc && desktopFreeVideoEndedRef.current) {
+      // #4 는 영상 재생 여부와 관계없이 진행 입력 한 번으로 #5 로 넘어간다.
+      // 다른 섹션과 같은 도착 직후 잠금(screenLocked)만 지켜서, #4 로 들어온 휠/트랙패드
+      // 관성이 #4 를 보지도 못하고 곧장 #5 로 흘러가 버리는 일은 막는다.
+      if (direction > 0 && screen === 4 && !useMobileHeroVideoRef.current && desktopOwnerBenefitVideoSrc) {
+        if (screenLockedRef.current) return;
         go(screen + 1, direction);
         return;
       }
@@ -1100,36 +1082,9 @@ function App() {
       go(screen + direction, direction);
     };
 
-    let desktopFreeLastWheelAt = -Infinity;
-    let desktopFreeWheelConsumed = false;
-    let mobileFreeLastWheelAt = -Infinity;
-    let mobileFreeWheelConsumed = false;
     const onWheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaY) < 1 || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
       const direction = event.deltaY > 0 ? 1 : -1;
-      if (direction > 0 && activeRef.current === 4 && !useMobileHeroVideoRef.current && desktopOwnerBenefitVideoSrc) {
-        const now = performance.now();
-        if (now - desktopFreeLastWheelAt > 320) desktopFreeWheelConsumed = false;
-        desktopFreeLastWheelAt = now;
-        if (!desktopFreeVideoEndedRef.current || desktopFreeWheelConsumed) {
-          desktopFreeWheelConsumed = true;
-          event.preventDefault();
-          return;
-        }
-        desktopFreeWheelConsumed = true;
-      }
-      if (direction > 0 && activeRef.current === 4 && useMobileHeroVideoRef.current && mobileOwnerBenefitVideoSrc) {
-        const now = performance.now();
-        // Require a quiet gap equal to the existing 320ms input lock. No playback timer.
-        if (now - mobileFreeLastWheelAt > 320) mobileFreeWheelConsumed = false;
-        mobileFreeLastWheelAt = now;
-        if (!mobileFreeVideoEndedRef.current || mobileFreeWheelConsumed) {
-          mobileFreeWheelConsumed = true;
-          event.preventDefault();
-          return;
-        }
-        mobileFreeWheelConsumed = true;
-      }
       const managerScroller = managerScrollRef.current;
       const managerTarget = event.target instanceof Node && managerScroller?.contains(event.target);
       if (activeRef.current === 6 && managerScroller && managerTarget) {
@@ -1173,7 +1128,6 @@ function App() {
       handleDirectionalInput(direction);
     };
     let ownerBenefitTouchStartY: number | null = null;
-    let ownerBenefitTouchStartedBeforeVideoEnd = false;
     let empathyTouchStart: { x: number; y: number; screen: number } | null = null;
     // #6/#7/#8 은 화면 안쪽이 스크롤된다. overscroll-behavior:contain 때문에 끝에 닿아도
     // 스크롤이 바깥으로 전달되지 않으므로, 경계에서만 섹션 이동을 직접 이어준다.
@@ -1216,9 +1170,6 @@ function App() {
       }
       if (activeRef.current !== 4 || event.touches.length !== 1) return;
       ownerBenefitTouchStartY = event.touches[0].clientY;
-      ownerBenefitTouchStartedBeforeVideoEnd = useMobileHeroVideoRef.current
-        ? Boolean(mobileOwnerBenefitVideoSrc) && !mobileFreeVideoEndedRef.current
-        : Boolean(desktopOwnerBenefitVideoSrc) && !desktopFreeVideoEndedRef.current;
     };
     const onTouchMove = (event: TouchEvent) => {
       if (empathyTouchStart) {
@@ -1277,7 +1228,6 @@ function App() {
       ownerBenefitTouchStartY = null;
       if (Math.abs(deltaY) < 24) return;
       event.preventDefault();
-      if (deltaY > 0 && ownerBenefitTouchStartedBeforeVideoEnd) return;
       handleDirectionalInput(deltaY > 0 ? 1 : -1);
     };
     const onTouchCancel = () => { empathyTouchStart = null; scrollerTouch = null; };
@@ -1288,11 +1238,6 @@ function App() {
         && event.target instanceof Element
         && event.target.closest('.consultation-form')
       ) return;
-      if (event.key === 'End' && activeRef.current === 4 && !useMobileHeroVideoRef.current
-        && desktopOwnerBenefitVideoSrc && !desktopFreeVideoEndedRef.current) {
-        event.preventDefault();
-        return;
-      }
       const direction = ['ArrowDown', 'PageDown', ' '].includes(event.key)
         ? 1
         : ['ArrowUp', 'PageUp'].includes(event.key)
@@ -1642,9 +1587,6 @@ function App() {
                     ref={mobileOwnerBenefitVideoRef}
                     className="owner-benefits__mobile-video"
                     src={mobileOwnerBenefitVideoSrc}
-                    onEnded={() => {
-                      if (activeRef.current === 4 && useMobileOwnerBenefitVideo) mobileFreeVideoEndedRef.current = true;
-                    }}
                     playsInline
                     preload="auto"
                     controls={false}
@@ -1672,7 +1614,6 @@ function App() {
                     src={isTabletPortrait ? mobileOwnerBenefitVideoSrc : desktopOwnerBenefitVideoSrc}
                     onEnded={() => {
                       if (activeRef.current !== 4 || useMobileHeroVideoRef.current) return;
-                      desktopFreeVideoEndedRef.current = true;
                       ownerBenefitAutoPlayingRef.current = false;
                     }}
                     playsInline
