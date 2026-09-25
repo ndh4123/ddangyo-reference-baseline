@@ -391,7 +391,7 @@ h1, h2, h3, p { margin: 0; }
   .consultation-form__privacy-details > div { min-width:0; }
   .consultation-form__privacy-details dt { color:#343947; font-weight:800; }
   .consultation-form__privacy-details dd { margin:3px 0 0; font-weight:500; line-height:1.55; word-break:keep-all; }
-  .consultation-form__submit { width:calc(100% + 72px); height:72px; margin-top:6px; padding:0 34px; justify-self:center; border:0; border-radius:18px; background:#0046ff; color:#fff; font-size:24px; font-weight:850; cursor:pointer; box-shadow:0 14px 30px rgba(0,70,255,.27); transition:background-color .2s ease-out,box-shadow .2s ease-out,transform .2s ease-out; }
+  .consultation-form__submit { width:calc(100% + 72px); height:72px; margin-top:6px; padding:0 34px; justify-self:center; border:0; border-radius:18px; background:#F15A24; color:#fff; font-size:24px; font-weight:850; cursor:pointer; box-shadow:0 14px 30px rgba(241,90,36,.27); transition:background-color .2s ease-out,box-shadow .2s ease-out,transform .2s ease-out; }
   .consultation-form__submit:hover { background:#f15a24; color:#fff; box-shadow:0 15px 32px rgba(241,90,36,.26); transform:scale(1.02); }
   .consultation-form__submit:focus-visible { outline:3px solid rgba(0,70,255,.3); outline-offset:3px; }
   .consultation-form__phone { color:#777d88; font-size:15px; font-weight:600; line-height:1.2; text-align:center; }
@@ -987,7 +987,13 @@ h1, h2, h3, p { margin: 0; }
 .screen.consultation .consultation-form__privacy { color:#4f5561; }
 .screen.consultation .consultation-form__privacy b { color:#F15A24; }
 .screen.consultation .consultation-form__privacy-toggle { color:#4f5561; }
-.screen.consultation .consultation-form__submit { background:#0046FF; color:#fff; }
+/* [2026-09-26] 모바일 고정 CTA 와 같은 주황으로 통일: 주황 = 상담 행동 버튼.
+   누름(및 마우스 hover)은 CTA 와 같은 한 톤 어두운 주황. 크기·위치·글자는 그대로. */
+.screen.consultation .consultation-form__submit { background:#F15A24; color:#fff; }
+.screen.consultation .consultation-form__submit:active { background:#D9481A; }
+@media (hover:hover) and (pointer:fine) {
+  .screen.consultation .consultation-form__submit:hover { background:#D9481A; }
+}
 .screen.consultation .consultation-form__phone { color:#777d88; }
 .screen.consultation .consultation-form__phone a { color:#F15A24; }
 .screen.consultation .consultation__trust-card { border-color:rgba(255,255,255,.12); background:rgba(255,255,255,.05); color:#e8eaee; box-shadow:none; }
@@ -1325,7 +1331,7 @@ h1, h2, h3, p { margin: 0; }
   .consultation-form__privacy-details { position:static; grid-column:1 / -1; grid-row:3; width:100%; margin:3px 0 0; padding:14px; display:flex; flex-direction:column; gap:10px; border:1px solid rgba(79,85,97,.12); border-radius:13px; background:#f7f8fa; color:#626874; font-size:13px; box-shadow:none; }
   .consultation-form__privacy-details dt { color:#343947; font-weight:800; }
   .consultation-form__privacy-details dd { margin:3px 0 0; font-weight:500; line-height:1.5; word-break:keep-all; }
-  .consultation-form__submit { width:100%; height:58px; margin-top:2px; padding:0 16px; justify-self:stretch; border:0; border-radius:15px; background:#0046FF; color:#fff; font-size:19px; font-weight:850; cursor:pointer; box-shadow:0 12px 26px rgba(0,70,255,.24); }
+  .consultation-form__submit { width:100%; height:58px; margin-top:2px; padding:0 16px; justify-self:stretch; border:0; border-radius:15px; background:#F15A24; color:#fff; font-size:19px; font-weight:850; cursor:pointer; box-shadow:0 12px 26px rgba(241,90,36,.24); }
   .consultation-form__phone { color:#777d88; font-size:14px; font-weight:600; line-height:1.25; text-align:center; }
   .consultation-form__phone a { margin-left:4px; color:#f15a24; font-size:18px; font-weight:850; }
 
