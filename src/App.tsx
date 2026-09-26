@@ -19,10 +19,10 @@ const steppedTouchNavQuery = '(max-width: 1100px)';
 // CSS scroll-snap 만으로 #0~#8 을 움직인다.
 const touchLayoutQuery = '(max-width: 1100px)';
 const largeTabletPortraitQuery = '(min-width: 900px) and (max-width: 1100px) and (orientation: portrait)';
-// #8 상담 신청이 실제로 접수(전송 성공)됐을 때만 띄울 문구. 아직 전송 연결 전이라
-// handleConsultationSubmit 은 기존 "접수 연결 안 됨" 안내를 그대로 띄운다.
-// n8n 연결 작업 때 전송 성공 분기에서 이 문구를 쓴다.
+// #8 상담 신청 결과 안내. 성공 문구는 /api/consultation 이 ok:true 를 돌려줬을 때만 띄운다.
 const consultationSuccessMessage = '상담 신청이 접수되었습니다. 담당 매니저 배정 후 연락드리겠습니다. 감사합니다.';
+const consultationErrorMessage = '접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. 계속 문제가 발생하면 1555-1984로 연락해 주세요.';
+const consultationInvalidPhoneMessage = '휴대폰 번호를 확인해 주세요.';
 // #1~#3 스토리. 모바일/컴팩트에서는 한 문장이 곧 한 snap step 이고,
 // 스와이프 한 번에 정확히 한 문장씩 정/역방향으로 움직인다.
 // 모바일/컴팩트 #1~#3 확정 문구. 바깥 배열 = STEP, 안쪽 배열 = 그 STEP 안의 줄.
@@ -197,6 +197,8 @@ function App() {
   const [selectedDeliveryApps, setSelectedDeliveryApps] = useState<string[]>([]);
   const [deliveryAppsError, setDeliveryAppsError] = useState(false);
   const [deliveryAppsAlerting, setDeliveryAppsAlerting] = useState(false);
+  const [consultationSubmitting, setConsultationSubmitting] = useState(false);
+  const consultationSubmittingRef = useRef(false);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const heroRiderRef = useRef<HTMLVideoElement>(null);
   const mobileOwnerBenefitVideoRef = useRef<HTMLVideoElement>(null);
@@ -1305,7 +1307,7 @@ function App() {
   // 옮겨 담아 상자 높이를 맞췄다. 이제 모바일도 페이지 흐름 그대로 길어지므로
   // 전 해상도가 같은 구성을 쓴다. 질문·답변 내용 자체는 그대로다.
   const displayedFaqItems: readonly FaqItem[] = selectedFaqCategory.items;
-  const handleConsultationSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleConsultationSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (selectedDeliveryApps.length === 0) {
@@ -1316,7 +1318,52 @@ function App() {
     }
 
     setDeliveryAppsError(false);
-    window.alert('현재 온라인 상담 접수가 연결되지 않아 신청이 접수되지 않았습니다. 1555-1984로 전화해 주세요.');
+    // state 갱신은 다음 렌더에야 버튼에 반영되므로, 같은 순간의 연속 클릭은 ref 로 막는다.
+    if (consultationSubmittingRef.current) return;
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const field = (name: string) => {
+      const value = formData.get(name);
+      return typeof value === 'string' ? value : '';
+    };
+    // 개인정보가 담기므로 로그·브라우저 저장소에 남기지 않고 요청 본문으로만 보낸다.
+    const payload = {
+      storeName: field('storeName'),
+      phone: field('phone'),
+      address: field('storeAddress'),
+      deliveryApps: selectedDeliveryApps,
+      privacyConsent: formData.get('privacyConsent') !== null,
+    };
+
+    consultationSubmittingRef.current = true;
+    setConsultationSubmitting(true);
+    let accepted = false;
+    let invalidPhone = false;
+    try {
+      const response = await fetch('/api/consultation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = (await response.json().catch(() => null)) as { ok?: unknown; code?: unknown } | null;
+      accepted = response.ok && result?.ok === true;
+      invalidPhone = response.status === 400 && result?.code === 'INVALID_PHONE';
+    } catch {
+      accepted = false;
+    } finally {
+      consultationSubmittingRef.current = false;
+      setConsultationSubmitting(false);
+    }
+
+    if (accepted) {
+      window.alert(consultationSuccessMessage);
+      form.reset();
+      setSelectedDeliveryApps([]);
+    } else {
+      // 실패하면 입력값은 그대로 두고 다시 시도하게 한다.
+      window.alert(invalidPhone ? consultationInvalidPhoneMessage : consultationErrorMessage);
+    }
   };
   const renderFaqItem = (item: FaqItem) => {
     const opened = openFaqId === item.id;
@@ -2080,7 +2127,14 @@ function App() {
                     </dl>
                   )}
                 </div>
-                <button className="consultation-form__submit consultation-form__full" type="submit">무료 입점 상담 신청</button>
+                <button
+                  className="consultation-form__submit consultation-form__full"
+                  type="submit"
+                  disabled={consultationSubmitting}
+                  aria-busy={consultationSubmitting}
+                >
+                  {consultationSubmitting ? '접수 중...' : '무료 입점 상담 신청'}
+                </button>
                 <p className="consultation-form__phone consultation-form__full">전화 상담이 편하신가요? <a href="tel:1555-1984">1555-1984</a></p>
                 </form>
 
