@@ -1,0 +1,24 @@
+// Cloudflare Workers 배포 설정 (Vercel 은 이 파일을 사용하지 않는다).
+// 빌드: npm run build:cf  → dist 생성 + 영상 manifest/조각 준비 (scripts/prepare-cloudflare-assets.mjs)
+// 비밀값 N8N_CONSULTATION_WEBHOOK_URL / N8N_CONSULTATION_WEBHOOK_SECRET 은 이 파일에 적지 않는다.
+// Cloudflare 대시보드(Settings > Variables and Secrets) 또는 `wrangler secret put` 으로만 넣는다.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ddangyo-site",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-01",
+  // api/consultation.ts 가 process.env 를 그대로 읽을 수 있게 한다.
+  "compatibility_flags": ["nodejs_compat"],
+  // 영상 Range 요청을 Cloudflare 캐시가 잘라 206 으로 응답한다(worker/media.ts 설명 참고). Wrangler 4.69 이상 필요.
+  "cache": { "enabled": true },
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // 홈페이지는 해시(#0~#8)로만 이동하므로 SPA 대체 응답이 필요 없다. 없는 주소는 기존 Vercel 처럼 404.
+    "not_found_handling": "none",
+    // 이 경로들만 Worker 를 거친다. 나머지 정적 파일은 Worker 호출 없이 무료로 제공된다.
+    "run_worker_first": ["/api/*", "/videos/*", "/animations/*", "/images/benefits/*"]
+  }
+}

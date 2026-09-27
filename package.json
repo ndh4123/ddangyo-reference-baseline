@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:cf": "npm run build && node scripts/prepare-cloudflare-assets.mjs",
+    "dev:cf": "npm run build:cf && wrangler dev",
+    "preview:cf": "npm run build:cf && wrangler versions upload",
+    "typecheck:cf": "wrangler types worker/worker-configuration.d.ts && tsc -p worker/tsconfig.json"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -17,6 +21,7 @@
   },
   "devDependencies": {
     "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react-dom": "latest",
+    "wrangler": "^4.141.0"
   }
 }
