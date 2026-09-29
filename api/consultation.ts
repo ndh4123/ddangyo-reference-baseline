@@ -7,7 +7,21 @@ declare const process: { env: Record<string, string | undefined> };
 
 const MAX_BODY_BYTES = 10_000;
 const N8N_TIMEOUT_MS = 10_000;
-const SOURCE = 'ddangyo.helpceo.kr';
+
+// 유입채널(화면 src/inflow.ts 가 보낸다). 채널 이름은 시트 "유입채널" 칸에 그대로 들어간다.
+// 공백은 _ 로 바꾸고 영문·숫자·한글·_·- 외 글자는 버린 뒤 100자로 자른다(= 로 시작하는 값이 시트에서 수식이 되지 않게).
+const INFLOW_DETAIL_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'n_media', 'n_query', 'n_keyword', 'n_ad_group'];
+const inflowText = (value: unknown) =>
+  typeof value === 'string' ? value.trim().replace(/\s+/g, '_').replace(/[^0-9A-Za-z가-힣_-]/g, '').slice(0, 100) : '';
+const inflowDetail = (value: unknown) => {
+  const detail: Record<string, string> = {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return detail;
+  for (const key of INFLOW_DETAIL_KEYS) {
+    const text = inflowText((value as Record<string, unknown>)[key]);
+    if (text) detail[key] = text;
+  }
+  return detail;
+};
 
 // 화면 칩 이름 → n8n 으로 보내는 이름. '배민' 만 정식 명칭으로 바꾼다.
 const deliveryAppNames: Record<string, string> = {
@@ -29,6 +43,7 @@ type ConsultationPayload = {
   privacyConsent: true;
   submittedAt: string;
   source: string;
+  sourceDetail: Record<string, string>;
 };
 
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
@@ -113,7 +128,9 @@ export async function POST(request: Request): Promise<Response> {
   const payload: ConsultationPayload = {
     ...result.payload,
     submittedAt: new Date().toISOString(),
-    source: SOURCE,
+    // 예전 화면(캐시)처럼 값을 안 보내면 unknown. 유입채널은 접수 성공/실패에 영향을 주지 않는다.
+    source: inflowText((input as Record<string, unknown>).source) || 'unknown',
+    sourceDetail: inflowDetail((input as Record<string, unknown>).sourceDetail),
   };
 
   try {

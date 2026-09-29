@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Header } from './components/Header';
+import { getInflow } from './inflow';
 
 const sectionCount = 9;
 const mobileHeroQuery = '(max-width: 600px)';
@@ -1334,6 +1335,9 @@ function App() {
       address: field('storeAddress'),
       deliveryApps: selectedDeliveryApps,
       privacyConsent: formData.get('privacyConsent') !== null,
+      // 유입채널(첫 방문 꼬리표 또는 referrer). src/inflow.ts 참고.
+      source: getInflow().source,
+      sourceDetail: getInflow().detail,
     };
 
     consultationSubmittingRef.current = true;
