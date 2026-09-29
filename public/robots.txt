@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 
 Sitemap: https://ddangyo.helpceo.kr/sitemap.xml
+
+#DaumWebMasterTool:d1e9b3990237539a59235f1e9bd7bc7d57b1ea54213b07aa7e53ffad0caa16bc:XDr1VT379Dqot/oNh7sGGw==
