@@ -2,8 +2,8 @@
 // - /api/consultation : 기존 Vercel Function(api/consultation.ts)을 수정 없이 그대로 불러 쓴다.
 //   환경변수는 nodejs_compat 이 process.env 로 채워 준다(wrangler.jsonc 참고).
 // - 영상 경로          : worker/media.ts (Workers Caching 이 Range 206 을 만든다).
-// - 네이버 소유확인    : 정적 파일 기본 설정은 `.html` 주소를 확장자 없는 주소로 307 넘김하므로,
-//   이 파일 주소만 Worker 가 받아 넘김 없이 200 으로 돌려준다(내용은 public 원본 그대로).
+// - 검색엔진 소유확인  : 정적 파일 기본 설정은 `.html` 주소를 확장자 없는 주소로 307 넘김하므로,
+//   네이버·구글 확인 파일 주소만 Worker 가 받아 넘김 없이 200 으로 돌려준다(내용은 public 원본 그대로).
 // 이 Worker 는 Workers Caching(cache.enabled)을 쓰므로, 캐시되면 안 되는 응답에는 Cache-Control: no-store 를 붙인다.
 // (POST 는 원래 캐시되지 않고, api/consultation.ts 의 응답에는 이미 no-store 가 있다.)
 // - 그 밖의 모든 경로  : Workers Static Assets(dist)가 그대로 응답한다.
@@ -11,7 +11,11 @@
 import * as consultation from '../api/consultation';
 import { isMediaPath, serveMedia, type Env } from './media';
 
-const NAVER_VERIFICATION_PATH = '/naver8a7f4a9705bc207c9207d5b8aa925ad6.html';
+// 검색엔진 소유확인 파일 (확인 후에도 지우면 안 된다). wrangler.jsonc 의 run_worker_first 에도 같은 주소가 있어야 한다.
+const SITE_VERIFICATION_PATHS = [
+  '/naver8a7f4a9705bc207c9207d5b8aa925ad6.html', // 네이버 서치어드바이저
+  '/google68732f90b25cb2d2.html', // 구글 서치콘솔
+];
 
 type Handler = (request: Request) => Promise<Response> | Response;
 
@@ -31,7 +35,7 @@ export default {
       return new Response('The page could not be found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
     }
 
-    if (pathname === NAVER_VERIFICATION_PATH) {
+    if (SITE_VERIFICATION_PATHS.includes(pathname)) {
       return env.ASSETS.fetch(new URL(pathname.slice(0, -'.html'.length), request.url));
     }
 

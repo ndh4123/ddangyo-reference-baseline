@@ -19,7 +19,7 @@
     // 홈페이지는 해시(#0~#8)로만 이동하므로 SPA 대체 응답이 필요 없다. 없는 주소는 기존 Vercel 처럼 404.
     "not_found_handling": "none",
     // 이 경로들만 Worker 를 거친다. 나머지 정적 파일은 Worker 호출 없이 무료로 제공된다.
-    // 네이버 소유확인 파일은 `.html` 307 넘김을 피하려고 Worker 가 직접 응답한다(worker/index.ts).
-    "run_worker_first": ["/naver8a7f4a9705bc207c9207d5b8aa925ad6.html", "/api/*", "/videos/*", "/animations/*", "/images/benefits/*"]
+    // 네이버·구글 소유확인 파일은 `.html` 307 넘김을 피하려고 Worker 가 직접 응답한다(worker/index.ts).
+    "run_worker_first": ["/naver8a7f4a9705bc207c9207d5b8aa925ad6.html", "/google68732f90b25cb2d2.html", "/api/*", "/videos/*", "/animations/*", "/images/benefits/*"]
   }
 }
