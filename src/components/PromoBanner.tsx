@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { PROMO } from '../promo';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -72,7 +72,14 @@ export function PromoBanner({ onNavigate }: PromoProps) {
       onClick={(event) => { event.preventDefault(); onNavigate(8); }}
     >
       <span className="promo-banner__badge">{promo.dLabel}</span>
-      <span className="promo-banner__text">{PROMO.bannerText}</span>
+      <span className="promo-banner__text">
+        {PROMO.bannerLines.map((line, index) => (
+          <Fragment key={line}>
+            {index > 0 && ' '}
+            <span className="promo-banner__line">{line}</span>
+          </Fragment>
+        ))}
+      </span>
       <span className="promo-banner__arrow" aria-hidden="true">›</span>
     </a>
   );

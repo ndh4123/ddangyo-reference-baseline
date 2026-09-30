@@ -1527,3 +1527,5 @@ body:has(.owner-benefits.is-active) .promo-bubble { bottom: 133px; }
   .promo-bubble .promo-banner__badge { color: #0046ff; }
   .promo-bubble::after { border-top-color: #0046ff; }
 }
+/* 띠 문구가 두 줄이 될 때는 promo.ts bannerLines 의 덩어리 사이에서만 줄을 바꾼다(덩어리 안은 안 끊김). 한 줄일 때는 모양 변화 없음. */
+.promo-banner__line { white-space: nowrap; }
