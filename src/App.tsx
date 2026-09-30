@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Header } from './components/Header';
+import { PromoBanner, PromoBubble } from './components/PromoBanner';
 import { getInflow } from './inflow';
 
 const sectionCount = 9;
@@ -1451,6 +1452,7 @@ function App() {
   return (
     <>
       <Header dark={darkHeader} hero={active === 0} mobile={useMobileHeroVideo} onNavigate={(screen) => screenNavigationRef.current(screen)} />
+      <PromoBanner onNavigate={(screen) => screenNavigationRef.current(screen, useMobileHeroVideo)} />
       <a
         className={`fixed-consult-cta ${showFixedConsultCta ? 'is-visible' : ''} ${ctaPauseScreen === active ? 'is-paused' : ''} ${ctaScrollReacting ? 'is-scroll-reacting' : ''}${useMobileOwnerBenefitVideo && active === 4 ? ' fixed-consult-cta--mobile-free' : ''}`}
         href="#8"
@@ -1460,6 +1462,7 @@ function App() {
       >
         무료 입점 상담
       </a>
+      <PromoBubble onNavigate={(screen) => screenNavigationRef.current(screen, useMobileHeroVideo)} />
       {!isTouchLayout && (
         <>
           <a

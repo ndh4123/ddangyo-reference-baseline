@@ -1502,3 +1502,28 @@ h1, h2, h3, p { margin: 0; }
       묶음을 30px 내려도 하단이 133px 남아 위아래 균형이 맞지 않았다(위 42 / 아래 133).
       대신 위쪽 .manager-support__header/.manager-support__closing 의 auto 마진이
       "헤더 ~ CTA 가용영역 가운데"로 묶음을 배치한다. */
+
+/* ── 0% 마감 프로모션: 상단 띠 배너 + 하단 고정 버튼 위 말풍선 (src/components/PromoBanner.tsx, 설정은 src/promo.ts) ── */
+.promo-banner { position: fixed; top: 0; right: 0; left: 0; z-index: 51; display: flex; min-height: 40px; padding: 8px 16px; align-items: center; justify-content: center; gap: 8px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 800; letter-spacing: -.3px; line-height: 1.3; text-align: center; transition: transform .25s ease; }
+.promo-banner.is-collapsed { transform: translateY(-100%); }
+.promo-banner__badge { flex: 0 0 auto; padding: 3px 8px; border-radius: 999px; background: #fff; color: var(--accent); font-size: 12px; font-weight: 900; line-height: 1.2; }
+.promo-banner__arrow { flex: 0 0 auto; font-size: 18px; line-height: 1; }
+.promo-banner:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
+html.has-promo .site-header { top: var(--promo-offset, 0px); transition: color .38s ease, background-color .38s ease, border-color .38s ease, top .25s ease; }
+/* 말풍선: App.tsx 에서 하단 고정 「무료 입점 상담」 버튼 바로 뒤에 있어, 그 버튼이 보일 때(.is-visible)만 같이 보인다.
+   위치는 버튼 위 10px(PC 버튼 = 바닥 30px·높이 78px, #4 에서는 바닥 45px). */
+.promo-bubble { position: fixed; bottom: 118px; left: 50%; z-index: 48; display: inline-flex; padding: 7px 14px 7px 8px; align-items: center; gap: 7px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 800; letter-spacing: -.3px; line-height: 1.2; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,.18); opacity: 0; visibility: hidden; pointer-events: none; transform: translate(-50%, 8px); transition: opacity .22s ease, transform .22s ease, visibility .22s ease; }
+.promo-bubble::after { content: ''; position: absolute; top: 100%; left: 50%; border: 7px solid transparent; border-top-color: var(--accent); transform: translateX(-50%); }
+.fixed-consult-cta.is-visible + .promo-bubble { opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0); }
+body:has(.owner-benefits.is-active) .promo-bubble { bottom: 133px; }
+@media (max-width: 1100px) {
+  .promo-banner { min-height: 36px; padding: 7px 12px; gap: 6px; font-size: 13px; }
+  .promo-banner__badge { padding: 2px 7px; font-size: 11px; }
+  .promo-banner__arrow { font-size: 16px; }
+  /* 1100px 이하 버튼 = 바닥 --cta-inset · 높이 --cta-h. 말풍선은 그 위 10px. */
+  .promo-bubble, body:has(.owner-benefits.is-active) .promo-bubble { bottom: calc(var(--cta-inset) + env(safe-area-inset-bottom, 0px) + var(--cta-h) + 10px); padding: 6px 12px 6px 7px; gap: 6px; font-size: 13px; }
+  /* 1100px 이하는 말풍선을 사이트 파랑(PC 하단 버튼과 같은 #0046ff)으로. 뱃지는 흰 바탕 + 파랑 글자, 꼬리도 같은 파랑. */
+  .promo-bubble { background: #0046ff; }
+  .promo-bubble .promo-banner__badge { color: #0046ff; }
+  .promo-bubble::after { border-top-color: #0046ff; }
+}
