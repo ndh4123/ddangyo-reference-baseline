@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { getInflow } from '../inflow';
 
-// 헤더 카카오톡 상담 버튼 링크. 카톡 채널 주소로 바꿀 때는 이 한 줄만 고친다.
-const KAKAO_CONSULT_URL = 'https://open.kakao.com/o/gjZOi0Pi';
+// 헤더 카카오톡 상담 버튼 링크. /kakao(worker/index.ts)가 요청 1건을 기록하고 오픈채팅으로 보낸다.
+// 오픈채팅 주소는 worker/index.ts 의 OPEN_CHAT_URL 한 곳에서만 관리한다.
+// utm_campaign = 이 방문자가 처음 들어온 유입채널(src/inflow.ts, 예: naver_search · direct).
+const KAKAO_CONSULT_URL = `/kakao?utm_source=homepage&utm_medium=header_button&utm_campaign=${encodeURIComponent(getInflow().source)}`;
 
 type HeaderProps = {
   dark: boolean;
