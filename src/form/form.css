@@ -1,0 +1,10 @@
+/* 카톡 전용 신청 폼(/form)에만 쓰는 보정. 나머지 모양은 홈페이지 styles.css 의 #8(.screen.consultation · .consultation-form)을 그대로 쓴다. */
+/* 화면이 하나뿐이라 홈페이지의 화면 단위 스냅을 끈다(긴 폼을 내릴 때 위로 되돌아가지 않게). */
+html { scroll-snap-type: none; }
+/* PC 1440x900 첫 화면 안에 신청 버튼까지 보이도록 제목 위·아래 여백만 조금 줄인다. */
+@media (min-width: 1101px) {
+  .consultation__inner { padding-top: 156px; }
+  .consultation__layout { margin-top: 36px; }
+}
+/* 동의 「내용보기」 안의 처리방침 전문 링크 */
+.consultation-form__privacy-link { color: #0046ff; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }

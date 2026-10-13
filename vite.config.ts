@@ -11,5 +11,9 @@ export default defineConfig({
     // 하한을 Safari 15.4 로 낮추면 기존 min-width/max-width 형태로 그대로 출력된다.
     // JS 번들 target(build.target)은 건드리지 않는다. CSS 출력 문법에만 영향을 준다.
     cssTarget: ['safari15.4', 'chrome100', 'edge100', 'firefox100'],
+    // 페이지 3개: 홈페이지(index.html) + 카톡 전용 신청 폼(form.html → /form) + 개인정보 처리방침(privacy.html → /privacy).
+    rollupOptions: {
+      input: { main: 'index.html', form: 'form.html', privacy: 'privacy.html' },
+    },
   },
 });

@@ -1,0 +1,25 @@
+/* 개인정보 처리방침(/privacy). 머리글(로고) 없이 문서만 두고, 푸터는 홈페이지 styles.css 를 그대로 쓴다. */
+html { scroll-snap-type: none; }
+body { background: #f6f7f9; }
+.privacy { padding: 64px 0 72px; color: #2b303b; }
+.privacy__inner { width: min(860px, calc(100% - 32px)); margin: 0 auto; padding: 48px 56px; border-radius: 24px; background: #fff; box-shadow: 0 14px 40px rgba(31,36,48,.06); font-size: 15.5px; line-height: 1.75; word-break: keep-all; overflow-wrap: anywhere; }
+.privacy h1 { color: #17191e; font-size: 34px; font-weight: 900; letter-spacing: -.04em; }
+.privacy__lead { margin-top: 18px; color: #4f5561; }
+.privacy section { margin-top: 36px; }
+.privacy h2 { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #f15a24; color: #17191e; font-size: 19px; font-weight: 850; letter-spacing: -.03em; }
+.privacy p + p, .privacy p + ul, .privacy p + ol, .privacy ul + p, .privacy ol + p, .privacy__table + p, .privacy p + .privacy__table { margin-top: 10px; }
+.privacy ul, .privacy ol { margin: 0; padding-left: 22px; }
+.privacy li + li { margin-top: 4px; }
+.privacy strong { color: #17191e; font-weight: 800; }
+/* 표는 좁은 화면에서 옆으로 밀어 보게 한다(페이지 전체가 가로로 넘치지 않게). */
+.privacy__table { overflow-x: auto; }
+.privacy table { width: 100%; min-width: 520px; border-collapse: collapse; font-size: 14.5px; line-height: 1.6; }
+.privacy th, .privacy td { padding: 10px 12px; border: 1px solid #e3e5ea; text-align: left; vertical-align: top; }
+.privacy th { background: #fff4f1; color: #343947; font-weight: 800; white-space: nowrap; }
+@media (max-width: 1100px) {
+  .privacy { padding: 24px 0 48px; }
+  .privacy__inner { padding: 28px 20px; border-radius: 18px; font-size: 15px; }
+  .privacy h1 { font-size: 26px; }
+  .privacy section { margin-top: 28px; }
+  .privacy h2 { font-size: 17px; }
+}

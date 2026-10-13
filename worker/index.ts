@@ -1,5 +1,6 @@
 // Cloudflare Workers 진입점.
-// - /api/consultation : 기존 Vercel Function(api/consultation.ts)을 수정 없이 그대로 불러 쓴다.
+// - /api/consultation : Vercel Function(api/consultation.ts)을 그대로 불러 쓴다(카톡 전용 신청 폼 /form 이 보낸다).
+//   운영 주소가 아닌 곳(미리보기)에서 온 신청은 매장명에 「[시험] 」을 붙인다(markPreviewSubmission).
 //   환경변수는 nodejs_compat 이 process.env 로 채워 준다(wrangler.jsonc 참고).
 // - 영상 경로          : worker/media.ts (Workers Caching 이 Range 206 을 만든다).
 // - 검색엔진 소유확인  : 정적 파일 기본 설정은 `.html` 주소를 확장자 없는 주소로 307 넘김하므로,
@@ -73,6 +74,21 @@ const callClick = (request: Request, env: Env, ctx: ExecutionContext) => {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 };
 
+// 미리보기(workers.dev) 등 운영 주소가 아닌 곳에서 보낸 상담 신청은 매장명 앞에 「[시험] 」을 붙여
+// 시트·메일·카톡 알림에서 바로 구분되게 한다. 운영 주소의 신청과 JSON 이 아닌 본문은 그대로 넘긴다(검증은 api/consultation.ts).
+const markPreviewSubmission = async (request: Request) => {
+  if (request.method !== 'POST' || new URL(request.url).hostname === PRODUCTION_HOST) return request;
+  const raw = await request.text();
+  let body = raw;
+  try {
+    const input: unknown = JSON.parse(raw);
+    if (input && typeof input === 'object' && !Array.isArray(input) && typeof (input as { storeName?: unknown }).storeName === 'string') {
+      body = JSON.stringify({ ...input, storeName: `[시험] ${(input as { storeName: string }).storeName}` });
+    }
+  } catch { /* JSON 이 아니면 그대로 넘겨 API 가 400 으로 답하게 한다 */ }
+  return new Request(request.url, { method: 'POST', headers: request.headers, body });
+};
+
 type Handler = (request: Request) => Promise<Response> | Response;
 
 const consultationHandlers = consultation as unknown as Record<string, Handler | undefined>;
@@ -88,7 +104,7 @@ export default {
     if (pathname === '/api/consultation') {
       const handler = consultationHandlers[request.method];
       // api/consultation.ts 가 내보내지 않은 메서드(HEAD, OPTIONS 등)는 기존 Vercel 과 같이 본문 없는 405.
-      return handler ? handler(request) : new Response(null, { status: 405, headers: { 'Cache-Control': 'no-store' } });
+      return handler ? handler(await markPreviewSubmission(request)) : new Response(null, { status: 405, headers: { 'Cache-Control': 'no-store' } });
     }
 
     if (pathname.startsWith('/api/')) {

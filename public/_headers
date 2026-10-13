@@ -1,0 +1,6 @@
+# Cloudflare Workers Static Assets 응답 헤더.
+# 카톡 전용 신청 폼은 검색엔진에 노출하지 않는다(form.html 의 robots meta 와 같은 뜻).
+/form
+  X-Robots-Tag: noindex, nofollow
+/form.html
+  X-Robots-Tag: noindex, nofollow

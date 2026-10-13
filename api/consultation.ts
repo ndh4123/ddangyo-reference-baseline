@@ -1,4 +1,4 @@
-// #8 상담 신청 중간 API (Vercel Function).
+// 상담 신청 중간 API (Vercel Function). 2026-10 부터는 카톡 전용 신청 폼(/form)이 보낸다(홈페이지 #8 폼은 없앴다).
 // 브라우저 → /api/consultation → n8n Webhook.
 // n8n 주소와 비밀키는 Vercel 환경변수에만 있고 프론트 번들에는 들어가지 않는다.
 // 개인정보가 오가므로 요청 본문·입력값은 절대 로그로 남기지 않는다.
