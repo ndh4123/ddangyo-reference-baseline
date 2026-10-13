@@ -7,6 +7,7 @@
 // 이 Worker 는 Workers Caching(cache.enabled)을 쓰므로, 캐시되면 안 되는 응답에는 Cache-Control: no-store 를 붙인다.
 // (POST 는 원래 캐시되지 않고, api/consultation.ts 의 응답에는 이미 no-store 가 있다.)
 // - /kakao             : 오픈채팅으로 302 이동. 요청 1건을 별도 n8n 입구로 기록한다(실패해도 이동은 된다).
+// - /api/call-click    : #8 「전화로 상담하기」 클릭 1건 기록(화면이 sendBeacon 으로 보낸다). 전화 연결은 화면의 tel: 링크가 한다.
 // - 그 밖의 모든 경로  : Workers Static Assets(dist)가 그대로 응답한다.
 //   (wrangler.jsonc 의 run_worker_first 에 없는 경로는 이 Worker 를 거치지 않는다.)
 import * as consultation from '../api/consultation';
@@ -27,31 +28,49 @@ const BOT_UA = /bot|crawl|spider|slurp|scrap|preview|facebookexternalhit|yeti|da
 const tagValue = (value: string | null) => (value ?? '').trim().replace(/\s+/g, '_').replace(/[^0-9A-Za-z가-힣_-]/g, '').slice(0, 100);
 const hostOf = (value: string | null) => { try { return value ? new URL(value).hostname : ''; } catch { return ''; } };
 
-// 요청 1건을 기록하고 바로 오픈채팅으로 보낸다. 기록은 응답을 보낸 뒤 따로 처리돼(waitUntil) 이동을 늦추거나 막지 않는다.
-// IP 는 기록하지 않는다. 봇의심 요청이거나 기록 주소(N8N_KAKAO_CLICK_WEBHOOK_URL)가 없으면 기록 없이 이동만 한다.
-const kakaoRedirect = (request: Request, env: Env, ctx: ExecutionContext) => {
+// 운영 주소. 미리보기(workers.dev) 등 다른 주소에서 들어온 클릭은 「시험」으로 기록한다.
+const PRODUCTION_HOST = 'ddangyo.helpceo.kr';
+
+// 클릭 1건을 기록한다. 기록은 응답을 보낸 뒤 따로 처리돼(waitUntil) 이동·전화 연결을 늦추거나 막지 않는다.
+// 꼬리표(utm_*)는 주소에서 읽는다. IP·이름 등 개인정보는 기록하지 않는다.
+// 봇의심 요청이거나 기록 주소(webhookVar)가 없으면 기록하지 않는다.
+const recordClick = (request: Request, env: Env, ctx: ExecutionContext, kind: '카톡' | '전화', webhookVar: string) => {
   const url = new URL(request.url);
   const vars = env as unknown as Record<string, string | undefined>;
   const userAgent = (request.headers.get('user-agent') ?? '').slice(0, 300);
   const record = {
     requestedAt: new Date().toISOString(),
+    kind,
     utm_source: tagValue(url.searchParams.get('utm_source')),
     utm_medium: tagValue(url.searchParams.get('utm_medium')),
     utm_campaign: tagValue(url.searchParams.get('utm_campaign')),
     referrerHost: hostOf(request.headers.get('referer')),
     userAgent,
     botSuspect: BOT_UA.test(userAgent) ? '봇의심' : '',
-    test: url.searchParams.get('test') === '1' ? '시험' : '',
+    test: url.searchParams.get('test') === '1' || url.hostname !== PRODUCTION_HOST ? '시험' : '',
   };
-  if (!record.botSuspect && vars.N8N_KAKAO_CLICK_WEBHOOK_URL && vars.N8N_CONSULTATION_WEBHOOK_SECRET) {
-    ctx.waitUntil(fetch(vars.N8N_KAKAO_CLICK_WEBHOOK_URL, {
+  const webhookUrl = vars[webhookVar];
+  if (!record.botSuspect && webhookUrl && vars.N8N_CONSULTATION_WEBHOOK_SECRET) {
+    ctx.waitUntil(fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': vars.N8N_CONSULTATION_WEBHOOK_SECRET },
       body: JSON.stringify(record),
       signal: AbortSignal.timeout(5000),
     }).catch(() => undefined));
   }
+};
+
+// 요청 1건을 기록하고 바로 오픈채팅으로 보낸다(기록 주소 = N8N_KAKAO_CLICK_WEBHOOK_URL).
+const kakaoRedirect = (request: Request, env: Env, ctx: ExecutionContext) => {
+  recordClick(request, env, ctx, '카톡', 'N8N_KAKAO_CLICK_WEBHOOK_URL');
   return new Response(null, { status: 302, headers: { Location: OPEN_CHAT_URL, 'Cache-Control': 'no-store' } });
+};
+
+// #8 전화 버튼 클릭 기록(기록 주소 = N8N_CALL_CLICK_WEBHOOK_URL, 없으면 기록 생략). 본문은 읽지 않는다.
+const callClick = (request: Request, env: Env, ctx: ExecutionContext) => {
+  if (request.method !== 'POST') return new Response(null, { status: 405, headers: { 'Cache-Control': 'no-store' } });
+  recordClick(request, env, ctx, '전화', 'N8N_CALL_CLICK_WEBHOOK_URL');
+  return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 };
 
 type Handler = (request: Request) => Promise<Response> | Response;
@@ -63,6 +82,8 @@ export default {
     const { pathname } = new URL(request.url);
 
     if (pathname === '/kakao' || pathname === '/kakao/') return kakaoRedirect(request, env, ctx);
+
+    if (pathname === '/api/call-click') return callClick(request, env, ctx);
 
     if (pathname === '/api/consultation') {
       const handler = consultationHandlers[request.method];

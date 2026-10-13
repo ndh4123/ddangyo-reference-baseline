@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Header } from './components/Header';
 import { PromoBanner, PromoBubble } from './components/PromoBanner';
 import { getInflow } from './inflow';
@@ -21,10 +21,17 @@ const steppedTouchNavQuery = '(max-width: 1100px)';
 // CSS scroll-snap 만으로 #0~#8 을 움직인다.
 const touchLayoutQuery = '(max-width: 1100px)';
 const largeTabletPortraitQuery = '(min-width: 900px) and (max-width: 1100px) and (orientation: portrait)';
-// #8 상담 신청 결과 안내. 성공 문구는 /api/consultation 이 ok:true 를 돌려줬을 때만 띄운다.
-const consultationSuccessMessage = '상담 신청이 접수되었습니다. 담당 매니저 배정 후 연락드리겠습니다. 감사합니다.';
-const consultationErrorMessage = '접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. 계속 문제가 발생하면 1555-1984로 연락해 주세요.';
-const consultationInvalidPhoneMessage = '휴대폰 번호를 확인해 주세요.';
+// #8 연락 방법. 상담 신청 폼은 2026-10 땡겨요 본사 요청으로 없앴다(사이트에서 개인정보를 직접 받지 않는다).
+// 폼이 쓰던 /api/consultation · n8n 「땡겨요 상담 접수」는 나중에 재활용하려고 그대로 둔다.
+const consultPhoneNumber = '1555-1984';
+// 꼬리표: utm_medium = 누른 버튼 · utm_campaign = 이 방문자가 처음 들어온 유입채널(src/inflow.ts).
+const contactTags = (medium: string) => `utm_source=homepage&utm_medium=${medium}&utm_campaign=${encodeURIComponent(getInflow().source)}`;
+// 카톡은 /kakao(worker/index.ts)가 1건 기록한 뒤 오픈채팅으로 보낸다(오픈채팅 주소는 worker 에서만 관리).
+const kakaoConsultUrl = (medium: string) => `/kakao?${contactTags(medium)}`;
+// 전화 버튼 클릭 1건 기록. 전화 연결(tel:)을 막거나 늦추지 않도록 sendBeacon 으로 보내고 결과는 기다리지 않는다.
+const recordCallClick = (medium: string) => {
+  try { navigator.sendBeacon(`/api/call-click?${contactTags(medium)}`); } catch { /* 기록 실패는 무시 */ }
+};
 // #1~#3 스토리. 모바일/컴팩트에서는 한 문장이 곧 한 snap step 이고,
 // 스와이프 한 번에 정확히 한 문장씩 정/역방향으로 움직인다.
 // 모바일/컴팩트 #1~#3 확정 문구. 바깥 배열 = STEP, 안쪽 배열 = 그 STEP 안의 줄.
@@ -195,12 +202,6 @@ function App() {
   const [openFaqId, setOpenFaqId] = useState<number | null>(1);
   const [ctaPauseScreen, setCtaPauseScreen] = useState<number | null>(null);
   const [ctaScrollReacting, setCtaScrollReacting] = useState(false);
-  const [privacyDetailsOpen, setPrivacyDetailsOpen] = useState(false);
-  const [selectedDeliveryApps, setSelectedDeliveryApps] = useState<string[]>([]);
-  const [deliveryAppsError, setDeliveryAppsError] = useState(false);
-  const [deliveryAppsAlerting, setDeliveryAppsAlerting] = useState(false);
-  const [consultationSubmitting, setConsultationSubmitting] = useState(false);
-  const consultationSubmittingRef = useRef(false);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const heroRiderRef = useRef<HTMLVideoElement>(null);
   const mobileOwnerBenefitVideoRef = useRef<HTMLVideoElement>(null);
@@ -1244,7 +1245,7 @@ function App() {
         activeRef.current === 8
         && !useMobileHeroVideoRef.current
         && event.target instanceof Element
-        && event.target.closest('.consultation-form')
+        && event.target.closest('.consultation-contact')
       ) return;
       const direction = ['ArrowDown', 'PageDown', ' '].includes(event.key)
         ? 1
@@ -1309,67 +1310,6 @@ function App() {
   // 옮겨 담아 상자 높이를 맞췄다. 이제 모바일도 페이지 흐름 그대로 길어지므로
   // 전 해상도가 같은 구성을 쓴다. 질문·답변 내용 자체는 그대로다.
   const displayedFaqItems: readonly FaqItem[] = selectedFaqCategory.items;
-  const handleConsultationSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (selectedDeliveryApps.length === 0) {
-      setDeliveryAppsError(true);
-      setDeliveryAppsAlerting(false);
-      window.requestAnimationFrame(() => setDeliveryAppsAlerting(true));
-      return;
-    }
-
-    setDeliveryAppsError(false);
-    // state 갱신은 다음 렌더에야 버튼에 반영되므로, 같은 순간의 연속 클릭은 ref 로 막는다.
-    if (consultationSubmittingRef.current) return;
-
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const field = (name: string) => {
-      const value = formData.get(name);
-      return typeof value === 'string' ? value : '';
-    };
-    // 개인정보가 담기므로 로그·브라우저 저장소에 남기지 않고 요청 본문으로만 보낸다.
-    const payload = {
-      storeName: field('storeName'),
-      phone: field('phone'),
-      address: field('storeAddress'),
-      deliveryApps: selectedDeliveryApps,
-      privacyConsent: formData.get('privacyConsent') !== null,
-      // 유입채널(첫 방문 꼬리표 또는 referrer). src/inflow.ts 참고.
-      source: getInflow().source,
-      sourceDetail: getInflow().detail,
-    };
-
-    consultationSubmittingRef.current = true;
-    setConsultationSubmitting(true);
-    let accepted = false;
-    let invalidPhone = false;
-    try {
-      const response = await fetch('/api/consultation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const result = (await response.json().catch(() => null)) as { ok?: unknown; code?: unknown } | null;
-      accepted = response.ok && result?.ok === true;
-      invalidPhone = response.status === 400 && result?.code === 'INVALID_PHONE';
-    } catch {
-      accepted = false;
-    } finally {
-      consultationSubmittingRef.current = false;
-      setConsultationSubmitting(false);
-    }
-
-    if (accepted) {
-      window.alert(consultationSuccessMessage);
-      form.reset();
-      setSelectedDeliveryApps([]);
-    } else {
-      // 실패하면 입력값은 그대로 두고 다시 시도하게 한다.
-      window.alert(invalidPhone ? consultationInvalidPhoneMessage : consultationErrorMessage);
-    }
-  };
   const renderFaqItem = (item: FaqItem) => {
     const opened = openFaqId === item.id;
     const questionId = `faq-question-${item.id}`;
@@ -2006,7 +1946,7 @@ function App() {
             <div className="consultation__inner">
               <header className="consultation__header">
                 <h2>이제, <strong>사장님 매장</strong> 이야기를 들려주세요.</h2>
-                <p>간단한 정보만 남겨주시면 전담 매니저가 확인 후 연락드립니다.</p>
+                <p>편한 방법으로 연락 주시면 전담 매니저가 바로 상담해 드립니다.</p>
               </header>
               <div className="consultation__layout">
                 <aside className="consultation__visual" aria-label="입점 상담을 돕는 매장 안내">
@@ -2033,117 +1973,33 @@ function App() {
                   </svg>
                 </aside>
 
-                <form
-                  className="consultation-form"
-                  onSubmit={handleConsultationSubmit}
-                >
-                <div className="consultation-form__fields">
-                  <label className="consultation-form__field" htmlFor="consultation-store-name">
-                    <span>매장명(상호)</span>
-                    <input id="consultation-store-name" name="storeName" type="text" placeholder="매장명을 입력해주세요." autoComplete="organization" required />
-                  </label>
-                  <label className="consultation-form__field" htmlFor="consultation-phone">
-                    <span>휴대폰 번호</span>
-                    <input id="consultation-phone" name="phone" type="tel" inputMode="tel" placeholder="010-0000-0000" autoComplete="tel" required />
-                  </label>
-                  <label className="consultation-form__field" htmlFor="consultation-address">
-                    <span>매장 주소</span>
-                    <input id="consultation-address" name="storeAddress" type="text" placeholder="예: 서울특별시 중구 세종대로 67" autoComplete="street-address" required />
-                  </label>
-                </div>
-                <div
-                  className={`consultation-form__apps-wrap consultation-form__full ${deliveryAppsError ? 'is-error' : ''} ${deliveryAppsAlerting ? 'is-alerting' : ''}`}
-                  onAnimationEnd={(event) => {
-                    if (event.animationName === 'consultation-apps-error-pulse') {
-                      setDeliveryAppsAlerting(false);
-                    }
-                  }}
-                >
-                <fieldset
-                  className="consultation-form__apps"
-                  aria-invalid={deliveryAppsError}
-                  aria-describedby={deliveryAppsError ? 'consultation-delivery-apps-error' : undefined}
-                >
-                  <legend>현재 이용 중인 배달앱 <small>복수 선택 가능</small></legend>
-                  <div className="consultation-form__chips">
-                    {['배민', '쿠팡이츠', '요기요', '땡겨요', '배달앱 미사용', '기타'].map((appName) => (
-                      <label key={appName}>
-                        <input
-                          type="checkbox"
-                          name="deliveryApps"
-                          value={appName}
-                          checked={selectedDeliveryApps.includes(appName)}
-                          onChange={() => {
-                            setDeliveryAppsError(false);
-                            setDeliveryAppsAlerting(false);
-                            setSelectedDeliveryApps((selectedApps) => {
-                              if (appName === '배달앱 미사용') {
-                                return selectedApps.includes(appName) ? [] : [appName];
-                              }
-
-                              const selectableApps = selectedApps.filter((selectedApp) => selectedApp !== '배달앱 미사용');
-                              return selectableApps.includes(appName)
-                                ? selectableApps.filter((selectedApp) => selectedApp !== appName)
-                                : [...selectableApps, appName];
-                            });
-                          }}
-                        />
-                        <span>{appName}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {deliveryAppsError && (
-                    <p id="consultation-delivery-apps-error" className="consultation-form__apps-error" role="alert">
-                      현재 이용 중인 배달앱을 선택해주세요.
-                    </p>
-                  )}
-                </fieldset>
-                </div>
-                <div className="consultation-form__privacy-row consultation-form__full">
-                  <label className="consultation-form__privacy" htmlFor="consultation-privacy">
-                    <input id="consultation-privacy" name="privacyConsent" type="checkbox" required />
-                    <span>{useMobileHeroVideo ? <><span className="consultation-form__privacy-lead"><b>[필수]</b> 개인정보</span> 수집 및 이용에 동의합니다.</> : <>개인정보 수집 및 이용에 동의합니다. <b>[필수]</b></>}</span>
-                  </label>
-                  <button
-                    className="consultation-form__privacy-toggle"
-                    type="button"
-                    aria-expanded={privacyDetailsOpen}
-                    onClick={() => setPrivacyDetailsOpen((isOpen) => !isOpen)}
+                {/* 상담 신청 폼 자리. 개인정보 입력 없이 카톡·전화로만 연락받는다(위 consultPhoneNumber 주석 참고). */}
+                <div className="consultation-contact">
+                  <a
+                    className="consultation-contact__button consultation-contact__button--kakao"
+                    href={kakaoConsultUrl('section8_kakao')}
+                    target="_blank"
+                    rel="noopener"
                   >
-                    <span aria-hidden="true">{privacyDetailsOpen ? '▾' : '▸'}</span>
-                    {privacyDetailsOpen ? '내용닫기' : '내용보기'}
-                  </button>
-                  {privacyDetailsOpen && (
-                    <dl className="consultation-form__privacy-details">
-                      <div>
-                        <dt>[수집·이용 목적]</dt>
-                        <dd>땡겨요 입점 상담 신청 접수, 상담 연락, 담당 매니저 배정, 입점 지원, 입점 후 매장 관리·사후관리 및 운영 컨설팅</dd>
-                      </div>
-                      <div>
-                        <dt>[수집 항목]</dt>
-                        <dd>매장명(상호), 휴대폰 번호, 매장 주소, 현재 이용 중인 배달앱</dd>
-                      </div>
-                      <div>
-                        <dt>[보유·이용 기간]</dt>
-                        <dd>상담, 입점 및 관리가 종료될 때까지 보유하며, 종료일로부터 6개월 후 파기합니다.</dd>
-                      </div>
-                      <div>
-                        <dt>[동의 거부 안내]</dt>
-                        <dd>개인정보 수집 및 이용에 동의하지 않을 권리가 있습니다. 다만 동의를 거부할 경우 무료 입점 상담 신청이 제한될 수 있습니다.</dd>
-                      </div>
-                    </dl>
-                  )}
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M12 3.6c-5.1 0-9.2 3.2-9.2 7.2 0 2.6 1.7 4.8 4.3 6.1l-.9 3.3c-.1.4.3.7.6.5l3.9-2.6c.4 0 .8.1 1.3.1 5.1 0 9.2-3.2 9.2-7.2S17.1 3.6 12 3.6z" />
+                    </svg>
+                    <span>카톡으로 무료 상담하기</span>
+                  </a>
+                  <a
+                    className="consultation-contact__button consultation-contact__button--phone"
+                    href={`tel:${consultPhoneNumber}`}
+                    onClick={() => recordCallClick('section8_phone')}
+                  >
+                    <span className="consultation-contact__phone-label">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z" />
+                      </svg>
+                      전화로 상담하기
+                    </span>
+                    <strong className="consultation-contact__phone-number">{consultPhoneNumber}</strong>
+                  </a>
                 </div>
-                <button
-                  className="consultation-form__submit consultation-form__full"
-                  type="submit"
-                  disabled={consultationSubmitting}
-                  aria-busy={consultationSubmitting}
-                >
-                  {consultationSubmitting ? '접수 중...' : '무료 입점 상담 신청'}
-                </button>
-                <p className="consultation-form__phone consultation-form__full">전화 상담이 편하신가요? <a href="tel:1555-1984">1555-1984</a></p>
-                </form>
 
                 <aside className="consultation__trust" aria-label="땡겨요 입점 상담 혜택">
                   <div className="consultation__trust-card">

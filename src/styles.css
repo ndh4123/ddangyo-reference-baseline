@@ -1529,3 +1529,33 @@ body:has(.owner-benefits.is-active) .promo-bubble { bottom: 133px; }
 }
 /* 띠 문구가 두 줄이 될 때는 promo.ts bannerLines 의 덩어리 사이에서만 줄을 바꾼다(덩어리 안은 안 끊김). 한 줄일 때는 모양 변화 없음. */
 .promo-banner__line { white-space: nowrap; }
+/* #8 연락 버튼(2026-10, 상담 신청 폼 대신). 어두운 바탕 위에 상자 없이 바로 놓는다.
+   PC = 카톡 버튼 + 주황 바탕에 흰색 큰 전화번호 / ≤1100 = 큰 버튼 2개 세로(위 카톡, 아래 전화, 같은 주황). */
+.consultation-contact { display: flex; width: 100%; flex-direction: column; gap: 20px; }
+.consultation-contact__button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 12px; border-radius: 18px; font-weight: 850; letter-spacing: -.04em; text-decoration: none; box-shadow: 0 16px 36px rgba(0,0,0,.35); transition: transform .2s ease-out, background-color .2s ease-out; }
+.consultation-contact__button svg { flex: 0 0 auto; width: 30px; height: 30px; fill: currentColor; }
+.consultation-contact__button:focus-visible { outline: 3px solid #8aa8ff; outline-offset: 4px; }
+.consultation-contact__button--kakao { height: 88px; background: #FEE500; color: #191919; font-size: 26px; }
+.consultation-contact__button--phone { height: 156px; flex-direction: column; gap: 6px; background: #F15A24; color: #fff; }
+.consultation-contact__phone-label { display: inline-flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800; }
+.consultation-contact__phone-label svg { width: 24px; height: 24px; }
+.consultation-contact__phone-number { font-size: 62px; font-weight: 900; line-height: 1.05; letter-spacing: -.02em; }
+@media (hover: hover) {
+  .consultation-contact__button:hover { transform: scale(1.02); }
+  .consultation-contact__button--phone:hover { background: #D9481A; }
+}
+@media (max-width: 1100px) {
+  /* #8 본문이 화면 한 장을 넉넉하게 쓰고(가운데 정렬), 푸터는 아래로 밀어야 보인다.
+     예전 작은 폰(≤600 · 높이 ≤880) 축소 규칙은 긴 폼용이라 아래 값이 덮어쓴다(같은 선택자, 파일 뒤쪽이 이김). */
+  .screen.consultation .consultation__inner { min-height: 100svh; padding: var(--touch-top) 0 56px; display: flex; flex-direction: column; justify-content: center; align-self: stretch; }
+  .consultation__header h2 { font-size: clamp(28px, 7.6vw, 42px); line-height: 1.25; }
+  .consultation__header p { margin-top: 16px; font-size: clamp(15px, 4.1vw, 19px); line-height: 1.55; text-wrap: balance; }
+  .consultation__layout { margin-top: 44px; }
+  .consultation-contact { gap: 14px; }
+  .consultation-contact__button { height: 72px; font-size: 20px; box-shadow: none; }
+  .consultation-contact__button svg { width: 26px; height: 26px; }
+  .consultation-contact__button--phone { flex-direction: row; gap: 8px; }
+  .consultation-contact__phone-label { font-size: 20px; font-weight: 850; }
+  .consultation-contact__phone-number { font-size: 22px; letter-spacing: 0; }
+  .consultation-contact__button:active { transform: scale(.98); }
+}
